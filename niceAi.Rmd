@@ -1,0 +1,424 @@
+---
+title: "Untitled"
+author: "Ismail Guennouni"
+date: "2023-05-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+library(depmixS4)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+origin_dat <- read.csv("data/longFormData.csv") 
+
+origin_dat <- origin_dat %>% mutate(investment_bin = cut(investment, breaks = c(-1,2.5,7.5,12.5,17.5,21)),
+                                    return_pct_bin = cut(return_pct, breaks = c(-.1,.125,.325,.51,.755,1.1)),
+                                    next_investment = lead(investment, default=0),
+                                            invPnL = return - investment,
+                                            trPnL = 3*investment - return)
+```
+
+
+
+# Support functions and discrete Gaussian class construction 
+```{r supportHMM, include=FALSE}
+# order the states of the HMM to allow it to order them as low ret/mid/ret/high ret. 
+label_switch <- function(mod,labels) {
+  # labels is vector, first element is new label for original state 1, second is new label for original state 2, etc.
+  if(!is(mod,"depmix") || !is(mod,"depmix.fitted")) stop("this function is for depmix models")
+  n_states <- mod@nstates
+  if(length(labels) != n_states || length(unique(labels)) != n_states || !(all(labels) %in% 1:n_states)) {
+    stop("labels needs to be a vector of unique integers between 1 and", n_states)
+  }
+  inv_labels <- sapply(1:n_states,function(x) which(labels == x))
+  tmp <- mod
+  # relabel prior
+  ppars <- getpars(mod@prior)
+  fpars <- getpars(mod@prior,which="fixed")
+  out_pars <- as.numeric(t(matrix(ppars,nrow=length(ppars)/n_states,byrow = TRUE)[,inv_labels]))
+  out_fixed <- as.logical(t(matrix(fpars,nrow=length(fpars)/n_states,byrow = TRUE)[,inv_labels]))
+  if(!tmp@prior@family$link=="identity") tmp@prior@family$base <- labels[tmp@prior@family$base]
+  # relabel transition
+  for(i in 1:n_states) {
+    ppars <- getpars(mod@transition[[inv_labels[i]]])
+    fpars <- getpars(mod@transition[[inv_labels[i]]], which="fixed")
+    out_pars <- c(out_pars,as.numeric(t(matrix(ppars,nrow=length(ppars)/n_states,byrow = TRUE)[,inv_labels])))
+    out_fixed <- c(out_fixed,as.logical(t(matrix(fpars,nrow=length(fpars)/n_states,byrow = TRUE)[,inv_labels])))
+    tmp@transition[[i]] <- mod@transition[[inv_labels[i]]]
+    if(!tmp@transition[[i]]@family$link=="identity") tmp@transition[[i]]@family$base <- labels[tmp@transition[[i]]@family$base]
+    #out_pars <- c(out_pars,getpars(mod@transition[[inv_labels[i]]]))
+  }
+  # relabel response
+  for(i in 1:n_states) {
+    out_pars <- c(out_pars,unlist(lapply(mod@response[[inv_labels[i]]],getpars)))
+    out_fixed <- c(out_fixed,unlist(lapply(mod@response[[inv_labels[i]]],getpars,which="fixed")))
+  }
+  tmp <- setpars(tmp,out_fixed,which="fixed")
+  tmp <- setpars(tmp,out_pars)
+  if(is(tmp,"depmix.fitted")) tmp@posterior <- viterbi(tmp)
+  return(tmp)
+}
+
+# ORDERING STATES WHEN RESPONSE IS BINS
+order_mod <- function(mod) {
+  ns <- nstates(mod)
+  sum <- rep(0.0,ns)
+  for(i in 1:ns) {
+    # Expected return in each state calculation (5 bins, for binned returns)
+    sum[i] = sum(1:5*mod@response[[i]][[1]]@parameters$coefficients)
+  }
+  # reordering the states
+  mod <- label_switch(mod, rank(sum))
+  return(mod)
+}
+
+# ORDERING STATES WHEN RESPONSE IS GAUSSIAN
+order_mod_gauss <- function(mod) {
+  ns <- nstates(mod)
+  sum <- rep(0.0,ns)
+  for(i in 1:ns) {
+    # Expected return in each state calculation 
+    sum[i] = mod@response[[i]][[1]]@parameters$mu
+  }
+  # reordering the states
+  mod <- label_switch(mod, rank(sum))
+  return(mod)
+}
+
+```
+
+```{r, include=F}
+# define a response class which only contains the standard slots, no additional slots
+setClass("discgaus", contains="response", slots=c(breaks="numeric"))
+
+# define a generic for the method defining the response class
+
+setGeneric("discgaus", function(y, pstart = NULL, fixed = NULL, ...) standardGeneric("discgaus"))
+
+# define the method that creates the response class
+
+setMethod("discgaus", 
+          signature(y="ANY"), 
+          function(y,pstart=NULL,fixed=NULL, breaks = c(-Inf, 0:19 + .5, Inf), ...) {
+            y <- matrix(y,length(y))
+            x <- matrix(1)
+            parameters <- list()
+            npar <- 2
+            if(is.null(fixed)) fixed <- as.logical(rep(0,npar))
+            if(!is.null(pstart)) {
+              if(length(pstart)!=npar) stop("length of 'pstart' must be ",npar)
+              parameters$mu <- pstart[1]
+              parameters$sigma <- pstart[2]
+            }
+            mod <- new("discgaus",parameters=parameters,fixed=fixed,x=x,y=y,npar=npar, breaks=breaks)
+            mod
+          }
+)
+
+setMethod("show","discgaus",
+          function(object) {
+            cat("Gaussian with discrete support\n")
+            cat("Parameters: \n")
+            cat("mu: ", object@parameters$mu, "\n")
+            cat("sigma: ", object@parameters$sigma, "\n")
+          }
+)
+
+setMethod("dens","discgaus",
+          function(object,log=FALSE) {
+            p <- pnorm(object@breaks[-1], mean = object@parameters$mu, sd = object@parameters$sigma) - pnorm(object@breaks[-length(object@breaks)], mean = object@parameters$mu, sd = object@parameters$sigma)
+            if(log) return(log(p[as.numeric(cut(object@y, breaks=object@breaks))])) else return(p[as.numeric(cut(object@y, breaks=object@breaks))])
+          }
+)
+
+setMethod("setpars","discgaus",
+          function(object, values, which="pars", ...) {
+            npar <- npar(object)
+            if(length(values)!=npar) stop("length of 'values' must be",npar)
+            # determine whether parameters or fixed constraints are being set
+            nms <- names(object@parameters)
+            switch(which,
+                   "pars"= {
+                     object@parameters$mu <- values[1]
+                     object@parameters$sigma <- values[2]
+                   },
+                   "fixed" = {
+                     object@fixed <- as.logical(values)
+                   }
+            )
+            names(object@parameters) <- nms
+            return(object)
+          }
+)
+
+setMethod("getpars","discgaus",
+          function(object,which="pars",...) {
+            switch(which,
+                   "pars" = {
+                     parameters <- numeric()
+                     parameters <- unlist(object@parameters)
+                     pars <- parameters
+                   },
+                   "fixed" = {
+                     pars <- object@fixed
+                   }
+            )
+            return(pars)
+          }
+)
+
+setMethod("fit","discgaus",
+          function(object,w) {
+            if(missing(w)) w <- NULL
+            if(!is.null(w)) {
+              negLL <- function(pars) {
+                object <- setpars(object, c(pars[1], exp(pars[2])))
+                -sum(w*log(dens(object)))
+              }
+            } else {
+              negLL <- function(pars) {
+                object <- setpars(object, c(pars[1], exp(pars[2])))
+                -sum(log(dens(object)))
+              }
+            }
+            pars <- optim(c(object@parameters$mu, log(object@parameters$sigma)), fn=negLL)$par
+            object <- setpars(object,c(pars[1], exp(pars[2])))
+            object
+          }
+)
+
+setClass("truncdiscgaus", contains="discgaus", slots=c(min="numeric", max="numeric"))
+
+setMethod("dens","truncdiscgaus",
+          function(object,log=FALSE) {
+            breaks <- c(object@min, object@breaks[object@breaks > object@min & object@breaks < object@max], object@max)
+            p <- pnorm(breaks[-1], mean = object@parameters$mu, sd = object@parameters$sigma) - pnorm(breaks[-length(breaks)], mean = object@parameters$mu, sd = object@parameters$sigma)
+            p <- p/sum(p)
+            if(log) return(log(p[as.numeric(cut(object@y, breaks=object@breaks))])) else return(p[as.numeric(cut(object@y, breaks=object@breaks))])
+          }
+)
+
+setGeneric("truncdiscgaus", function(y, pstart = NULL, fixed = NULL, ...) standardGeneric("truncdiscgaus"))
+
+setMethod("truncdiscgaus", 
+          signature(y="ANY"), 
+          function(y,pstart=NULL,fixed=NULL, breaks = c(-Inf, 0:19 + .5, Inf), min=0, max=20, ...) {
+            y <- matrix(y,length(y))
+            x <- matrix(1)
+            parameters <- list()
+            npar <- 2
+            if(is.null(fixed)) fixed <- as.logical(rep(0,npar))
+            if(!is.null(pstart)) {
+              if(length(pstart)!=npar) stop("length of 'pstart' must be ",npar)
+              parameters$mu <- pstart[1]
+              parameters$sigma <- pstart[2]
+            }
+            mod <- new("truncdiscgaus",parameters=parameters,fixed=fixed,x=x,y=y,npar=npar, breaks=breaks, min=min, max=max)
+            mod
+          }
+)
+```
+
+```{r}
+# Specify simple models to copy transition and prior
+inv_simple <- list()
+for(i in 2:6) {
+  inv_simple[[i]] <- depmix(investment_bin ~ 1, data = origin_dat, nstates = i, transition = ~ invPnL, family=multinomial("mlogit"), ntimes = rep(10,381))
+}
+
+
+# Specify truncated gaussian models for 3 state model 
+rModels3 <- list(
+  list(
+    truncdiscgaus(origin_dat$investment,pstart=c(5,2), min=-.5, max=20.5) # first guassian initialised with mean of 5 and sd of 2
+  ),
+  list(
+    truncdiscgaus(origin_dat$investment,pstart=c(10,2), min=-.5, max=20.5)
+  ),
+  list(
+    truncdiscgaus(origin_dat$investment,pstart=c(15,2), min=-.5, max=20.5)
+  )
+)
+
+inv_dmod_3 <- makeDepmix(response=rModels3,transition=inv_simple[[3]]@transition,prior=inv_simple[[3]]@prior,ntimes = rep(10,381), homogeneous=FALSE)
+
+inv_fdmod_3 <- fit(inv_dmod_3, emcontrol=em.control(random.start = FALSE))  #random.start = FALSE -> use parameters supplied as starting values
+
+mod_3S <- order_mod_gauss(inv_fdmod_3)
+
+```
+
+
+```{r, include=F}
+#ORDER THE STATES OF THE HMM
+
+state1 <- dens(truncdiscgaus(seq(0:20) - 1,pstart=c(unlist(mod_3S@response[[1]][[1]]@parameters)), breaks = c(-Inf, 0:19 + .5, Inf), min=0, max=20))
+
+state2 <- dens(truncdiscgaus(seq(0:20) - 1,pstart=c(unlist(mod_3S@response[[2]][[1]]@parameters)), breaks = c(-Inf, 0:19 + .5, Inf), min=0, max=20))
+
+state3 <- dens(truncdiscgaus(seq(0:20) - 1,pstart=c(unlist(mod_3S@response[[3]][[1]]@parameters)), breaks = c(-Inf, 0:19 + .5, Inf), min=0, max=20))
+
+investment <- seq(0:20) - 1
+
+inv_resp_3S <- as.data.frame(cbind(investment,state1,state2,state3)) %>% 
+  pivot_longer(cols=c("state1","state2","state3"),
+                    names_to='investor_state',
+                    values_to='probability') 
+
+
+```
+
+```{r}
+inv_resp_3S %>% mutate( investor_state = fct_recode(investor_state, "low-trust" = "state1", "medium-trust" = "state2", "high-trust" = "state3"))%>%
+        ggplot( aes(x = investment,
+                    y = probability,
+                    fill = investor_state)) +
+  geom_bar(stat = "identity",
+           position = "dodge") + 
+  labs(fill='Latent investor state') +
+  theme_bw() + 
+  theme(legend.position = "bottom")
+
+```
+
+
+Let's write a function to plot transition functions given parameters 
+
+```{r}
+# Here pars takes the form of a list ns matrices, one for each state from 1 to ns.
+plot_transitions_PnL <- function(fmod) {
+
+  ns <- nstates(fmod)
+  
+  trans_prob <- data.frame(
+    from = rep(1:ns, each=80*ns),
+    to = rep(1:ns, each=80),
+    PnL = seq(-20,60,length=80),
+    prob = 0
+  )
+
+  y <- matrix(0.0,ncol=ns, nrow=80)
+  
+  for(from in 1:ns) {
+    pars <- matrix(getpars(fmod)[seq(ns + 1 + (from - 1)*2*ns, ns + 1 + (from - 1)*2*ns + 2*ns - 1)],ncol=2)
+    for(to in 1:ns) {
+      x <- trans_prob[trans_prob$from == from & trans_prob$to == to,"PnL"]
+      y[,to] <- exp(pars[to,1] + pars[to,2]*x)
+    }
+    y <- y/rowSums(y)
+    for(to in 1:ns) {
+      trans_prob$prob[trans_prob$from == from & trans_prob$to == to] <- y[,to]
+    }
+  }
+  
+  trans_prob <- trans_prob %>% mutate(from=recode(from, 
+                         `1`="low-trust",
+                         `2`="medium-trust",
+                         `3`="high-trust"),
+                        to=recode(to, 
+                         `1`="low-trust",
+                         `2`="medium-trust",
+                         `3`="high-trust")) %>% 
+    mutate(across(from, factor, levels=c("low-trust","medium-trust","high-trust"))) %>% 
+    mutate(across(to, factor, levels=c("low-trust","medium-trust","high-trust")))
+    
+    
+#     iris %>%
+#    mutate(across(from, factor, levels=c("low-trust","medium-trust","high-trust"))) %>%
+# ggplot() + 
+#    geom_histogram(aes(Petal.Width))+ 
+#    facet_grid(Species~.)
+#   
+  ggplot(trans_prob,aes(x=PnL,y=prob, colour = as.factor(to))) + geom_line() + facet_wrap(~from) + ylim(c(0,1)) +
+      theme(legend.position = "bottom")
+}
+```
+
+
+```{r}
+plot_transitions_PnL(mod_3S)
+```
+```{r}
+ns <- 3
+pars <- NULL
+
+for (from in 1:ns){
+  Tr_mat <- matrix(getpars(mod_3S)[seq(ns + 1 + (from - 1)*2*ns, ns + 1 + (from - 1)*2*ns + 2*ns - 1)],ncol=2)
+
+colnames(Tr_mat) <- c("intercept","invPnL")
+rownames(Tr_mat) <- c("to_1", "to_2", "to_3")
+pars[[from]] <- Tr_mat
+  
+}
+
+pars[[2]]["to_2","invPnL"]
+
+
+  
+```
+
+
+## Write function to plot transition probs based on input of trans matrix
+
+```{r}
+plot_transitions_input <- function(pars_list) {
+
+  ns <- nrow(pars_list[[1]])  # number of states
+  
+  trans_prob <- data.frame(
+    from = rep(1:ns, each=80*ns),
+    to = rep(1:ns, each=80),
+    PnL = seq(-20,60,length=80),
+    prob = 0
+  )
+
+  y <- matrix(0.0,ncol=ns, nrow=80)
+  
+  for(from in 1:ns) {
+    pars <- pars_list[[from]]
+    for(to in 1:ns) {
+      x <- trans_prob[trans_prob$from == from & trans_prob$to == to,"PnL"]
+      y[,to] <- exp(pars[to,1] + pars[to,2]*x)
+    }
+    y <- y/rowSums(y)
+    for(to in 1:ns) {
+      trans_prob$prob[trans_prob$from == from & trans_prob$to == to] <- y[,to]
+    }
+  }
+  
+  trans_prob <- trans_prob %>% mutate(from=recode(from, 
+                         `1`="low-trust",
+                         `2`="medium-trust",
+                         `3`="high-trust"),
+                        to=recode(to, 
+                         `1`="low-trust",
+                         `2`="medium-trust",
+                         `3`="high-trust")) %>% 
+    mutate(across(from, factor, levels=c("low-trust","medium-trust","high-trust"))) %>% 
+    mutate(across(to, factor, levels=c("low-trust","medium-trust","high-trust")))
+   
+  ggplot(trans_prob,aes(x=PnL,y=prob, colour = as.factor(to))) + geom_line() + facet_wrap(~from) + ylim(c(0,1))+
+      theme(legend.position = "bottom")
+}
+
+```
+
+```{r}
+# pars has the format [[from]]["to","x"]
+pars[[1]]["to_1","invPnL"] <- 0
+pars[[1]]["to_1","intercept"] <-  10
+
+pars[[2]]["to_1","intercept"] <- 3
+#pars
+plot_transitions_input(pars)
+```
+
+
+
