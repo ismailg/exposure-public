@@ -1,0 +1,267 @@
+---
+title: "(Re)building cooperation: Effects of a cognitive intervention on cooperative behavior in games"
+author:
+  "Ismail Guennouni^1^, Christoph Korn, Georgia Koppe"
+  
+keywords:
+- Social Trust
+- Repair of Cooperation
+- Cognitive Intervention 
+- Economic Games 
+- Hidden Markov Models
+
+abstract: |
+  
+bibliography: "bib/cogIntervention.bib"
+biblio-style: spphys
+
+output: pdf_document
+header-includes:
+  - \usepackage{lscape}
+---
+
+```{r setupCoax, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE) 
+knitr::opts_chunk$set(out.width = "\\textwidth")
+```
+
+```{r load-packages05, include = FALSE}
+library(papaja)
+library(kableExtra)
+require(knitr)
+#require(citr)
+require(bookdown)
+
+# using some functions dplyr, ggpubr, PairedData and sjPlot. Need to be loaded. 
+library(tidyverse)
+library(afex)
+library(PairedData)
+library(multcompView)
+library(lsmeans)
+library(depmixS4)
+library(flextable)
+library(grid)
+library(gridExtra)
+library(forcats)
+library(ggsignif)
+#library(magick)
+
+
+```
+
+```{r analysis-preferences, include = FALSE}
+# Seed for random number generation
+set.seed(42)
+options(tinytex.verbose = TRUE)
+```
+
+```{r}
+
+d_finished <- readRDS("data/d_finished.csv")
+exposure_intervention <- paste0(as.character(d_finished %>% dplyr::select(treatment.intervention) %>% unique()) , as.character(d_finished %>% dplyr::filter(gameNumber == "11", isLastRound) %>% dplyr::select(game_opponent) %>% unique()))
+
+
+
+d_finished <- d_finished  %>% mutate(gameNum.f = factor(gameNumber,labels = c("pre", "expo1", "expo2", "expo3","post"),levels=c("1", "11", "12", "13", "2")), 
+                              condition  = exposure_intervention) %>% 
+                        rename(# Before Exposure
+                            rating_cooperative_1 = `ratePLayer_trustGame_1.How cooperative do you think the other player is?`,
+                            rating_forgiving_1 = `ratePLayer_trustGame_1.How forgiving do you think the other player is?`,
+                            rating_playAgain_1 = `ratePLayer_trustGame_1.If given the choice, would you like to play again with the other player?`,
+                            
+                            # During Exposure
+                            rating_cooperative_11 = `ratePLayer_trustGame_11.How cooperative do you think the other player is?`,
+                            rating_forgiving_11 = `ratePLayer_trustGame_11.How forgiving do you think the other player is?`,
+                            rating_playAgain_11 = `ratePLayer_trustGame_11.If given the choice, would you like to play again with the other player?`,
+                            rating_cooperative_12 = `ratePLayer_trustGame_12.How cooperative do you think the other player is?`,
+                            rating_forgiving_12 = `ratePLayer_trustGame_12.How forgiving do you think the other player is?`,
+                            rating_playAgain_12 = `ratePLayer_trustGame_12.If given the choice, would you like to play again with the other player?`,
+                            rating_cooperative_13 = `ratePLayer_trustGame_13.How cooperative do you think the other player is?`,
+                            rating_forgiving_13 = `ratePLayer_trustGame_13.How forgiving do you think the other player is?`,
+                            rating_playAgain_13 = `ratePLayer_trustGame_13.If given the choice, would you like to play again with the other player?`,
+                            
+                            # After Exposure
+                            rating_cooperative_2 = `ratePLayer_trustGame_2.How cooperative do you think the other player is?`,
+                            rating_forgiving_2 = `ratePLayer_trustGame_2.How forgiving do you think the other player is?`,
+                            rating_playAgain_2 = `ratePLayer_trustGame_2.If given the choice, would you like to play again with the other player?`,
+                            
+
+                            )
+
+
+#######################    Pre-processing player ratings 
+
+# Pivot longer ratings on each attribute 
+df_coop <- d_finished %>% dplyr::select(playerId,condition,contains("cooperative")) %>%  
+  pivot_longer(cols=contains("cooperative"), names_to = c("gameNumber"), names_pattern ="rating_cooperative_(.*)", values_to = "rating_coop") %>% distinct()
+
+df_forgiv <- d_finished %>% dplyr::select(playerId,condition,contains("forgiving")) %>%
+  pivot_longer(cols=contains("forgiving"), names_to = c("gameNumber"), names_pattern ="rating_forgiving_(.*)", values_to = "rating_forgiving") %>% distinct()
+
+df_playAgain <- d_finished %>% dplyr::select(playerId,condition,contains("again")) %>%  
+  pivot_longer(cols=contains("again"), names_to = c("gameNumber"), names_pattern ="rating_playAgain_(.*)", values_to = "rating_playAgain") %>% distinct()
+
+#merge all data frames together
+datRatings <- list(df_coop, df_forgiv,df_playAgain) %>% reduce(full_join, by=c('playerId','gameNumber','condition') )  
+
+# Group means for each rating 
+mu <- datRatings %>% group_by(gameNumber, condition) %>% summarise(mean_coop = mean(rating_coop),
+                                                  mean_forgiv = mean(rating_forgiving),
+                                                  mean_playAgain = mean(rating_playAgain)
+                                                  )
+mu
+
+# ggplot(mu,aes(x=gameNumber)) + 
+#   geom_bar(aes(y=mean_forgiv, stat = "identity", position = "dodge", color="blue")) + 
+#   geom_bar(aes(y=mean_coop, stat = "identity", position = "dodge", color="darkgreen")) +
+#   geom_bar(aes(y=mean_playAgain, stat = "identity", position = "dodge", color="red")) +
+#   ggtitle("Player ratings after each game") +
+#   xlab("Game Number") +
+#   theme_minimal() + 
+#   theme(legend.position = "bottom")
+#   
+
+
+
+```
+
+```{r}
+library(ggplot2)
+library(reshape2)
+
+# First, you may need to convert the data from wide to long format
+df_long <- melt(datRatings, id.vars = c("playerId", "condition", "gameNumber"),
+                measure.vars = c("rating_coop", "rating_forgiving", "rating_playAgain"),
+                variable.name = "rating_type", value.name = "rating_value")
+
+# Order the gameNumber factor as you specified
+df_long$gameNumber <- factor(df_long$gameNumber, levels = c("1", "11", "12", "13", "2"))
+
+# Create a boxplot for each rating
+
+  ggplot(df_long, aes(x = gameNumber, y = rating_value, fill = rating_type)) +
+  geom_boxplot() +
+  stat_summary(fun = mean, geom = "point", shape = 20, size = 3, color = "darkred", show.legend = TRUE) +
+  facet_wrap(~rating_type, scales = "free") +
+  labs(x = "Game Number", y = "Rating") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+
+
+```
+
+
+```{r}
+# Filter only trust rounds and create % returns and investments 
+
+avg_ret_df <- d_finished %>%
+  dplyr::select(playerId,roundType,investment,returns,roundNum,gameNum.f,condition) %>% 
+  filter(roundType=="trust",!is.na(roundNum)) %>% 
+  mutate(roundNum = as.numeric(as.character(roundNum))) %>%
+  mutate(inv_scaled = scale(investment)) %>% 
+  mutate(inv_pct = investment/20, ret_pct_0 = ifelse(investment==0,0,returns/(3*investment))) 
+
+# Number of people left for analysis. (there are 51 rounds in each game)
+#num_participants <- nrow(avg_ret_df)/51
+num_participants <- length(unique(avg_ret_df$playerId))
+
+num_participants 
+
+```
+
+```{r}
+# average investment for first 10 rounds pre intervention
+avg_pct <- avg_ret_df %>% filter(roundNum < 11 , gameNum.f == "pre") %>% summarise(avg_inv = mean(inv_pct), avg_ret = mean(ret_pct_0, na.rm=TRUE))
+avg_pct
+```
+```{r}
+# Plot Invs and Rets in absolute values for pre and post
+ggplot(avg_ret_df %>% filter(gameNum.f %in% c("pre","post")), aes(x=roundNum)) + 
+  stat_summary(aes(y=returns, color="Returns"), fun = "mean", geom = "line", group = 1) +
+  stat_summary(aes(y=investment, color="Investment"), fun = "mean", geom = "line", group = 1) +
+  facet_wrap(~gameNum.f) +
+  scale_color_manual(values = c("Returns" = "red", "Investment" = "blue")) +
+  labs(color = "") +
+  xlab("Round Number")+
+  theme_bw() +
+  theme(legend.position = "bottom",  # Move legend to bottom
+        legend.title.align = 0.5,  # Center-align the legend title
+        legend.key = element_blank(),
+        plot.title = element_text(hjust = 0.5),  # Center-align the plot title
+        axis.text = element_text(color = "black"),  # Customize axis text
+        axis.title = element_text(color = "black"))  # Customize axis title
+
+
+
+# # Plot Invs and Rets in percentages for pre and post
+# ggplot(avg_ret_df %>% filter(gameNum.f %in% c("pre","post")),aes(x=roundNum)) + 
+#   stat_summary(fun = "mean", geom = "line",group =1, color = "red", aes(y=ret_pct_0)) + 
+#   stat_summary(fun = "mean", geom = "line",group=1, color = "blue", alpha =0.6,position = position_dodge2(width=0.8),aes(y=inv_pct)) + 
+#   geom_hline(yintercept=0.33, linetype="dashed", color = "grey") +
+#   facet_wrap(~gameNum.f)
+
+ggplot(avg_ret_df %>% filter(gameNum.f %in% c("pre","post")), aes(x=roundNum)) + 
+  stat_summary(aes(y=ret_pct_0, color="Returns"), fun = "mean", geom = "line", group = 1) +
+  stat_summary(aes(y=inv_pct, color="Investment"), fun = "mean", geom = "line", group = 1) +
+  geom_hline(yintercept=0.33, linetype="dashed", color = "grey") +
+  facet_wrap(~gameNum.f) +
+  scale_color_manual(values = c("Returns" = "red", "Investment" = "blue")) +
+  labs(color = "") +
+  xlab("Round Number")+
+  ylab("Investment / Returns (%)")+
+  theme_bw() +
+  theme(legend.position = "bottom",  # Move legend to bottom
+        legend.title.align = 0.5,  # Center-align the legend title
+        plot.title = element_text(hjust = 0.5),  # Center-align the plot title
+        axis.text = element_text(color = "black"),  # Customize axis text
+        axis.title = element_text(color = "black"))  # Customize axis title
+
+
+```
+```{r}
+# Plot Invs and Rets in absolute values for exposure
+ggplot(avg_ret_df %>% filter(gameNum.f %in% c("expo1","expo2","expo3")),aes(x=roundNum)) + 
+  stat_summary(fun = "mean", geom = "line",group =1, color = "red", aes(y=returns)) + 
+  #stat_summary(fun.data = "mean_ci", geom = "errorbar",alpha =0.4, width = 0.2, aes(y=ret_pct) ) + 
+  stat_summary(fun = "mean", geom = "line",group=1, color = "blue",aes(y=investment)) + 
+  facet_wrap(~gameNum.f)
+
+
+# Plot Invs and Rets in percentages for exposure
+ggplot(avg_ret_df %>% filter(gameNum.f %in% c("expo1","expo2","expo3")),aes(x=roundNum)) + 
+  stat_summary(fun = "mean", geom = "line",group =1, color = "red", aes(y=ret_pct_0)) + 
+  #stat_summary(fun.data = "mean_ci", geom = "errorbar",alpha =0.4, width = 0.2, aes(y=ret_pct) ) + 
+  stat_summary(fun = "mean", geom = "line",group=1, color = "blue", alpha =0.6,position = position_dodge2(width=0.8),aes(y=inv_pct)) + 
+  geom_hline(yintercept=0.33, linetype="dashed", color = "grey") +
+  facet_wrap(~gameNum.f)
+
+
+```
+
+```{r gamesPlot, include=T, echo=FALSE, fig.cap="Averages and standard errors of the trustee's return as a percentage of the multiplied investment received by Condition, Phase, and game round. The blue line shows the returns pre-manipulation and the green line post-manipulation. We note a different reaction to the pre-programmed one-off low investment between the two conditions: Whilst there is a dip in returns pre-manipulation for both conditions,  post manipulation we see higher returns in the intervention condition compared to the dip in returns seen in the control condition in the right panel",fig.align="center", fig.width=6, fig.height = 4}
+
+
+ggplot(avg_ret_df %>% filter(gameNum.f %in% c("pre","post")), aes(x=as.factor(roundNum), y=ret_pct_0, group=gameNum.f, color = gameNum.f, fill=gameNum.f)) +
+  stat_summary(fun = mean, geom = "line") +
+  stat_summary(fun.data = mean_se, geom = "ribbon", aes(ymin=..ymin.., ymax=..ymax..),
+               alpha = 0.3, linetype = 0) +
+  labs(x = "Round",
+       y = "Percentage Return",
+       color = "Trust Game Phase") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.key = element_blank(),
+        #legend.key = element_rect(fill = NA), # Make legend key background transparent
+        legend.margin = margin(t = 0, b = 0, unit = "pt"), # Adjust top and bottom margin of each legend
+        legend.box.margin = margin(t = 0, b = 0, unit = "pt")) + # Adjust top and bottom margin of the legend box
+  scale_color_manual(values = c("darkblue", "darkgreen"),
+                     labels = c("Pre-manipulation", "Post-manipulation")) +
+  scale_fill_manual(values = c("darkblue", "darkgreen"),
+                    guide = "none") + # Hide the fill legend
+  guides(color = guide_legend(override.aes = list(fill = NA))) # Remove fill for color legend keys
+
+
+```
+
+
