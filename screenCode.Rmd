@@ -1,0 +1,254 @@
+---
+title: "screeningAnalysis"
+author: "Ismail Guennouni"
+date: "2023-11-20"
+output: pdf_document
+---
+
+
+```{r setup2, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+library(depmixS4)
+library(lubridate)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load data}
+#rsq_dat <- read.csv("data/RSQ_Feb06_24.csv") 
+rsq_dat <- read.csv("data/RSQ_Feb13_24.csv") 
+
+# Step 1: Remove rows 1 and 2
+df_screening <- rsq_dat[-c(1, 2), ]
+
+
+df_screening <- df_screening %>%
+  mutate(
+    MH = if_else(as.Date(ymd_hms(StartDate)) > as.Date("2023-11-28"), 1, 0),
+    MH.f = factor(MH, levels = c(0, 1), labels = c("Gen pop", "MH Condition"))
+  )
+
+
+
+# Rename columns Q4 to Q12 to Q1 to Q9
+old_names <- paste0("Q", 4:12)
+new_names <- paste0("Q", 1:9)
+names(df_screening)[names(df_screening) %in% old_names] <- new_names
+
+# Rename the "Duration..in.seconds." column to "duration"
+names(df_screening)[names(df_screening) == "Duration..in.seconds."] <- "duration"
+
+# Step 2: Filter rows
+df_screening <- df_screening[df_screening$Q1 == "I accept" & !grepl('test', df_screening$Q2) & df_screening$DistributionChannel ==  'anonymous', ]
+cat("valid submissions: ",  nrow(df_screening), "\n")
+
+# Calculate the number of valid responses (non-NA in all columns)
+#valid_responses_count <- sum(complete.cases(df_screening))
+
+
+
+
+###########################
+# Step 3: Identifying responses where both Q_att_1 and Q_att_2 are less than or equal to 6
+unsuccessful_responses <- df_screening$Q_att_1 < 6 | df_screening$Q_att_2 < 6
+
+# Calculating the number of unsuccessful responses
+unsuccessful_count <- sum(unsuccessful_responses)
+
+# Print the number of unsuccessful responses
+cat("Number of responses failing attention checks:", unsuccessful_count, "\n")
+
+###########################
+
+# # Convert duration to numeric (if it's not already)
+# df_screening$duration <- as.numeric(as.character(df_screening$duration))
+# 
+# # Calculate the median duration for the whole dataset
+# median_duration_total <- median(df_screening$duration, na.rm = TRUE)
+# 
+# # Calculate the median duration for those who failed the attention checks
+# median_duration_unsuccessful <- median(df_screening$duration[unsuccessful_responses], na.rm = TRUE)
+# 
+# # Print the median durations
+# cat("Median duration for the whole dataset:", median_duration_total, "seconds\n")
+# cat("Median duration for unsuccessful responses:", median_duration_unsuccessful, "seconds\n")
+
+
+#########################
+
+# Filtering out these unsuccessful responses
+df_screening<- df_screening[!unsuccessful_responses, ]
+
+# Print the number of valid responses
+cat("Number of valid responses:", nrow(df_screening), "\n")
+
+
+
+```
+```{r}
+# Step 4: Calculate rejection sensitivity score
+# Identifying columns ending with _1 and _2, ignoring Q_att_1 and Q_att_2
+one_columns <- grep('_1$', names(df_screening), value = TRUE)
+two_columns <- grep('_2$', names(df_screening), value = TRUE)
+one_columns <- setdiff(one_columns, c('Q_att_1', 'Q_att_2'))
+two_columns <- setdiff(two_columns, c('Q_att_1', 'Q_att_2'))
+
+# The scale is from 1 to 6 for b columns, we reverse it by subtracting from 7
+df_screening[two_columns] <- lapply(df_screening[two_columns], function(x) 7 - as.numeric(x))
+
+# Calculate the rejection sensitivity score for each situation
+for (i in 1:length(one_columns)) {
+    score_col <- paste0(substr(one_columns[i], 1, nchar(one_columns[i])-2), '_score')
+    df_screening[[score_col]] <- as.numeric(df_screening[[one_columns[i]]]) * as.numeric(df_screening[[two_columns[i]]])
+}
+
+# Step 5: Create a new column for the mean of the rejection sensitivity scores
+score_columns <- grep('_score$', names(df_screening), value = TRUE)
+df_screening$RS_score <- rowMeans(df_screening[, score_columns], na.rm = TRUE)
+
+# Display the first few rows of the updated dataframe
+head(df_screening)
+
+```
+
+```{r}
+
+# Plot histogram of mean rejection sensitivity with overlaid density plot
+ggplot(df_screening, aes(x = RS_score)) +
+    geom_histogram(aes(y = after_stat(density)), binwidth = 1, fill = 'skyblue', color = 'black', alpha = 0.6) +
+    geom_density(color = 'red', size = 1.5, alpha = 0.7) +
+    theme_minimal() +
+    labs(title = 'Histogram and Density of Mean Rejection Sensitivity Scores',
+         x = 'Mean Rejection Sensitivity Score',
+         y = 'Density') +
+    theme(plot.title = element_text(hjust = 0.5),
+          axis.title.x = element_text(size = 12, face = "bold"),
+          axis.title.y = element_text(size = 12, face = "bold")) + 
+   facet_wrap(~ MH.f)
+
+```
+
+```{r}
+# Calculate the mean of the RS_score 
+mean_score <- round(mean(df_screening$RS_score, na.rm = TRUE),2)
+
+# Calculate the standard deviation
+std_dev <- round(sd(df_screening$RS_score, na.rm = TRUE),2)
+
+# Count the number of respondents with scores above 15 (inclusive)
+count_above_15 <- sum(df_screening$RS_score >= 15, na.rm = TRUE)
+
+# Count the number of respondents more than 1 standard deviation above the mean
+count_above_1sd <- sum(df_screening$RS_score > (mean_score + std_dev), na.rm = TRUE)
+
+# Count the number of respondents more than 2 standard deviations above the mean
+count_above_2sd <- sum(df_screening$RS_score > (mean_score + 2 * std_dev), na.rm = TRUE)
+
+# Print the results
+cat("Mean of the mean rejection sensitivity scores:", mean_score, "\n")
+cat("SD:", std_dev, "\n")
+cat("Number of respondents with scores >= 15:", count_above_15, "\n")
+cat("Number of respondents > 1 standard deviation above the mean:", count_above_1sd, "\n")
+cat("Number of respondents > 2 standard deviations above the mean:", count_above_2sd, "\n")
+
+```
+```{r}
+# Count the number of respondents with scores above 15 (inclusive) in both samples
+count_above_15_normal <- round(
+  (df_screening %>% dplyr::filter(MH == 0, RS_score >= 15) %>% nrow()) / 
+  (df_screening %>% dplyr::filter(MH == 0) %>% nrow()) * 100, 1)
+
+count_above_15_MH <- round(
+  (df_screening %>% dplyr::filter(MH == 1, RS_score >= 15) %>% nrow()) / 
+  (df_screening %>% dplyr::filter(MH == 1) %>% nrow()) * 100, 1)
+
+cat("Proportion of HEALTHY respondents with scores >= 15 on RSQ :", count_above_15_normal, "%\n")
+cat("Proportion of MH respondents with scores >= 15 on RSQ :", count_above_15_MH, "%\n")
+
+```
+
+```{r}
+# Return Prolific IDs for those above a certain score: 
+
+high_RS <- df_screening %>% dplyr::filter(RS_score >= 15) %>% dplyr::select(PROLIFIC_PID)
+
+high_RS
+
+write.csv(high_RS, "data/high_RS.csv", sep = ",", row.names = FALSE,quote = FALSE)
+
+
+```
+```{r}
+# Old high RS participants identified in screening in November/December 2023
+high_RS_old <- df_screening %>% dplyr::filter(RS_score >= 15, as.Date(ymd_hms(StartDate)) != as.Date("2024-02-06") ) %>% dplyr::select(PROLIFIC_PID)
+
+# Newly identified 06 feb 2024
+high_RS_new <- df_screening %>% dplyr::filter(RS_score >= 15, as.Date(ymd_hms(StartDate)) == as.Date("2024-02-06") ) %>% dplyr::select(PROLIFIC_PID)
+
+# String them together and add to prolific
+new_ids_string <- paste(high_RS_new, collapse = ",")
+ids_string
+new_ids_string
+
+```
+
+```{r}
+# Load csv of IDs of already collected data from high RSQ in early December
+highRS_collected <- read.csv("data/highRSQ_collected.csv") 
+```
+
+```{r}
+# Find IDs in high_RS that are not in highRS_collected
+missing_ids <- !high_RS$PROLIFIC_PID %in% highRS_collected$Participant.id
+
+# Subset high_RS to get the dataframe of people you haven't collected data for
+not_collected <- high_RS[missing_ids, ]
+
+nrow(not_collected)
+
+ids_string <- paste(not_collected, collapse = ",")
+ids_string
+```
+
+
+# Newly identified high RS on the 13th feb 2024.
+
+```{r}
+
+high_RS_13feb <- df_screening %>% dplyr::filter(RS_score >= 15, as.Date(ymd_hms(StartDate)) == as.Date("2024-02-13") ) %>% dplyr::select(PROLIFIC_PID)
+
+nrow(high_RS_13feb)
+
+# String them together and add to prolific
+feb13_ids_string <- paste(high_RS_13feb$PROLIFIC_PID, collapse = ",")
+
+feb13_ids_string
+```
+
+
+# Select those with low rejection sensitivity defined as below mean of 10 on the RSQ (...by the 6th of feb)
+```{r}
+
+# Return Prolific IDs for those above a certain score: 
+
+low_RS <- df_screening %>% 
+          dplyr::filter(RS_score < 10) %>% 
+          dplyr::select(PROLIFIC_PID)
+
+# Extract the PROLIFIC_PID values as a character vector
+low_RS_vector <- low_RS$PROLIFIC_PID 
+
+# Create the comma-separated string
+low_RS_string <- paste(low_RS_vector, collapse = ",")
+
+# Count the number of elements in the extracted PROLIFIC_PID vector
+num_ids <- length(low_RS_vector)
+
+cat("Number of extracted IDs: ", num_ids)
+
+```
+
+
+
