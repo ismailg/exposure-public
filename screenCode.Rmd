@@ -39,9 +39,11 @@ names(df_screening)[names(df_screening) %in% old_names] <- new_names
 
 # Rename the "Duration..in.seconds." column to "duration"
 names(df_screening)[names(df_screening) == "Duration..in.seconds."] <- "duration"
+names(df_screening)[names(df_screening) == "Q2"] <- "id"
+
 
 # Step 2: Filter rows
-df_screening <- df_screening[df_screening$Q1 == "I accept" & !grepl('test', df_screening$Q2) & df_screening$DistributionChannel ==  'anonymous', ]
+df_screening <- df_screening[df_screening$Q1 == "I accept" & !grepl('test', df_screening$id) & df_screening$DistributionChannel ==  'anonymous', ]
 cat("valid submissions: ",  nrow(df_screening), "\n")
 
 # Calculate the number of valid responses (non-NA in all columns)
@@ -111,7 +113,26 @@ df_screening$RS_score <- rowMeans(df_screening[, score_columns], na.rm = TRUE)
 # Display the first few rows of the updated dataframe
 head(df_screening)
 
+# Save the df_screening data frame to a file named "df_screening.RData"
+save(df_screening, file = "data/df_screening.RData")
+
 ```
+
+#DUPLICATES?
+```{r}
+library(dplyr)
+
+# Find duplicates based on 'id'
+duplicates <- df_screening %>%
+  group_by(id) %>%
+  summarize(count = n(), .groups = 'drop') %>%
+  filter(count > 1)
+
+# View the duplicates and their counts
+print(duplicates)
+
+```
+
 
 ```{r}
 
