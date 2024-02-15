@@ -57,18 +57,69 @@ options(tinytex.verbose = TRUE)
 
 ```{r}
 
-d_finished <- readRDS("data/d_finished.csv")
-exposure_intervention <- paste0(as.character(d_finished %>% dplyr::select(treatment.intervention) %>% unique()) , as.character(d_finished %>% dplyr::filter(gameNumber == "11", isLastRound) %>% dplyr::select(game_opponent) %>% unique()))
+
+library(dplyr)
+d_finished <- readRDS("../scriptMongo/data/d_finished.csv")
+
+# Step 1: Identify the expo_opponent for each playerId where gameNumber == "11" (exposure game) & isLastRound == TRUE (to select a particular)
+expo_opponent_df <- d_finished %>%
+  filter(gameNumber == "11", isLastRound == TRUE) %>%
+  dplyr::select(id, expo_opponent = game_opponent) %>%
+  distinct() # Ensure uniqueness in case of duplicates
+
+# Step 2: Join this information back to the original dataset
+d_finished <- d_finished %>%
+  left_join(expo_opponent_df, by = "id") %>%
+  mutate(condition.f = as.factor(expo_opponent)) %>%
+  dplyr::select(-expo_opponent) # Optionally, remove the expo_opponent column if it's no longer needed
 
 
+###### get whether high or low RS and score from df_screening 
 
-d_finished <- d_finished  %>% mutate(gameNum.f = factor(gameNumber,labels = c("pre", "expo1", "expo2", "expo3","post"),levels=c("1", "11", "12", "13", "2")), 
-                              condition  = exposure_intervention) %>% 
-                        rename(# Before Exposure
+# Load the "df_screening.RData" file
+load("data/df_screening.RData")
+
+RS_data <- df_screening %>% mutate(high_RS = as.factor(ifelse(RS_score > 15, 1,0))) %>% 
+                            dplyr::select(id, MH.f, RS_score, high_RS)
+
+# Find IDs for those who participated in experiment and add RS_score and high_RS as new columsn to d_finished.
+# Merging d_finished with relevant columns from RS_data based on matching ids
+d_finished <- d_finished %>%
+  inner_join(RS_data %>% dplyr::select(id, RS_score, high_RS), by = "id")
+
+
+# Summarize to count the number of participants for each Condition within each high_RS level
+temp <- d_finished %>% dplyr::select(id, condition.f, high_RS) %>% 
+                      unique() %>%
+                      group_by(high_RS, condition.f) %>%
+                      summarize(participant_count = n(), .groups = 'drop')
+
+# View the summarized counts
+print(temp)
+```
+```{r}
+# Filter and Select Columns
+result <- d_finished %>%
+          filter(high_RS == 1) %>%
+          dplyr::select(id, RS_score)%>% 
+          unique() 
+
+# Print the Result
+print(result)
+```
+
+
+```{r}
+
+# d_finished now has the 'Condition' column with the value equal to expo_opponent for all rounds and rows per playerId
+
+d_finished <- d_finished  %>% mutate( gameNum.f = factor(gameNumber,labels = c("pre", "expo1", "expo2", "expo3","post"),
+                                      levels=c("1", "11", "12", "13", "2"))) %>% 
+                              rename(# Before Exposure
                             rating_cooperative_1 = `ratePLayer_trustGame_1.How cooperative do you think the other player is?`,
                             rating_forgiving_1 = `ratePLayer_trustGame_1.How forgiving do you think the other player is?`,
                             rating_playAgain_1 = `ratePLayer_trustGame_1.If given the choice, would you like to play again with the other player?`,
-                            
+              
                             # During Exposure
                             rating_cooperative_11 = `ratePLayer_trustGame_11.How cooperative do you think the other player is?`,
                             rating_forgiving_11 = `ratePLayer_trustGame_11.How forgiving do you think the other player is?`,
@@ -87,7 +138,19 @@ d_finished <- d_finished  %>% mutate(gameNum.f = factor(gameNumber,labels = c("p
                             
 
                             )
+```
 
+
+
+```{r}
+
+d_finished %>% dplyr::filter(id=="601d2aa3cf8c480009fc0719")  %>% dplyr::select(Turing.justification)
+```
+
+```
+
+
+```{r}
 
 #######################    Pre-processing player ratings 
 
@@ -111,6 +174,7 @@ mu <- datRatings %>% group_by(gameNumber, condition) %>% summarise(mean_coop = m
                                                   )
 mu
 
+
 # ggplot(mu,aes(x=gameNumber)) + 
 #   geom_bar(aes(y=mean_forgiv, stat = "identity", position = "dodge", color="blue")) + 
 #   geom_bar(aes(y=mean_coop, stat = "identity", position = "dodge", color="darkgreen")) +
@@ -120,16 +184,16 @@ mu
 #   theme_minimal() + 
 #   theme(legend.position = "bottom")
 #   
-
-
-
 ```
+
+
+
 
 ```{r}
 library(ggplot2)
 library(reshape2)
 
-# First, you may need to convert the data from wide to long format
+# First, we need to convert the data from wide to long format
 df_long <- melt(datRatings, id.vars = c("playerId", "condition", "gameNumber"),
                 measure.vars = c("rating_coop", "rating_forgiving", "rating_playAgain"),
                 variable.name = "rating_type", value.name = "rating_value")
