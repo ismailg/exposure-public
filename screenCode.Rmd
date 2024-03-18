@@ -17,8 +17,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r load data}
-#rsq_dat <- read.csv("data/RSQ_Feb06_24.csv") 
-rsq_dat <- read.csv("data/RSQ_Feb13_24.csv") 
+
+#rsq_dat <- read.csv("data/RSQ_Feb15_24.csv") 
+rsq_dat <- read.csv("data/RSQ_Feb18_24.csv") 
 
 # Step 1: Remove rows 1 and 2
 df_screening <- rsq_dat[-c(1, 2), ]
@@ -201,6 +202,7 @@ write.csv(high_RS, "data/high_RS.csv", sep = ",", row.names = FALSE,quote = FALS
 
 
 ```
+
 ```{r}
 # Old high RS participants identified in screening in November/December 2023
 high_RS_old <- df_screening %>% dplyr::filter(RS_score >= 15, as.Date(ymd_hms(StartDate)) != as.Date("2024-02-06") ) %>% dplyr::select(PROLIFIC_PID)
@@ -234,18 +236,18 @@ ids_string
 ```
 
 
-# Newly identified high RS on the 13th feb 2024.
+# Newly identified high RS on the 18th feb 2024.
 
 ```{r}
 
-high_RS_13feb <- df_screening %>% dplyr::filter(RS_score >= 15, as.Date(ymd_hms(StartDate)) == as.Date("2024-02-13") ) %>% dplyr::select(PROLIFIC_PID)
+high_RS_18feb <- df_screening %>% dplyr::filter(RS_score >= 15, as.Date(ymd_hms(StartDate)) == as.Date("2024-02-18") ) %>% dplyr::select(PROLIFIC_PID)
 
-nrow(high_RS_13feb)
+nrow(high_RS_18feb)
 
 # String them together and add to prolific
-feb13_ids_string <- paste(high_RS_13feb$PROLIFIC_PID, collapse = ",")
+feb18_ids_string <- paste(high_RS_18feb$PROLIFIC_PID, collapse = ",")
 
-feb13_ids_string
+feb18_ids_string
 ```
 
 
