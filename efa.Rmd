@@ -1,0 +1,135 @@
+---
+title: "EFA"
+author: "Ismail Guennouni"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, include =F)
+library(tidyverse)
+library(dplyr)
+```
+
+<!-- Load dataset 1 (RSQ) and select questionnaires -->
+```{r rsq}
+load("data/df_screening.RData")
+  
+# Identifying columns ending with _1 and _2, ignoring Q_att_1 and Q_att_2
+one_columns <- grep('_1$', names(df_screening), value = TRUE)
+two_columns <- grep('_2$', names(df_screening), value = TRUE)
+one_columns <- setdiff(one_columns, c('Q_att_1', 'Q_att_2'))
+two_columns <- setdiff(two_columns, c('Q_att_1', 'Q_att_2'))
+
+df_rsq <- df_screening %>% dplyr::select(id, all_of(one_columns), all_of(two_columns))
+  
+```
+
+
+
+<!-- Load dataset 2 (LPFS) and select questionnaires -->
+```{r LPFS}
+
+load("data/d_finished.RData")
+df_lpfs <- d_finished %>% dplyr::select(id,contains("LPFS.")) %>% unique()
+
+# Right join the data frames on the "id" column
+df_efa <- merge(df_rsq, df_lpfs, by = "id", all.y = TRUE) %>% unique() %>% dplyr::select(-id)
+
+
+```
+
+
+```{r, include=T}
+# Convert empty strings to NA and ensure numeric columns are indeed numeric.
+# Replace the missing cells with column median
+df_clean <- df_efa %>%
+  mutate(across(everything(), ~as.numeric(as.character(.)))) %>%
+  mutate(across(everything(), ~ifelse(is.na(.), median(., na.rm = TRUE), .)))
+
+
+```
+
+
+
+<!-- Duble checking non numeric and missing value cells -->
+```{r}
+
+str(df_clean) # all columns are numeric now 
+colSums(is.na(df_clean)) # alls sums are 0 so no more missing values
+
+
+```
+
+
+
+
+```{r nFactors, include =T}
+
+library(nFactors)
+library(psych)
+
+
+ev <- eigen(cor(df_clean)) # get eigenvalues
+
+ev$values
+
+scree(df_clean, pc=FALSE)  # Scree plot of the eigen values. Use pc=FALSE for factor analysis
+
+```
+
+```{r, include =T}
+# another way to plot the eigenvalue
+fa.parallel(df_clean, fa="fa")
+```
+The eigenvalue method (“Kaiser’s rule”) is telling us that 8 factors may be best. The scree plot is putting us somewhere between three and five factors. Parallel analysis suggests similar. THink 3 is adequate for such a small dataset but we can also use other methods such as CNG. 
+
+```{r, include =T}
+Nfacs <- 3  # Think 3 factors is adequate for this small dataset. You can change this as needed.
+
+# start with assumption of correlation btw factos. so using promax.
+fit <- factanal(df_clean, Nfacs, rotation="promax") 
+
+
+print(fit, digits=2, cutoff=0.3, sort=TRUE)
+```
+```{r, include =T }
+load <- fit$loadings[,1:2]
+plot(load,type="n") # set up plot
+text(load,labels=names(df_clean),cex=.7)
+```
+```{r, include =T}
+loads <- fit$loadings
+
+fa.diagram(loads)
+```
+
+
+```{r, include=T}
+dim(fit$loadings) 
+round(fit$loadings[ 1:30,], 2)
+```
+
+<!-- # Using the Polycor Package  -->
+
+<!-- ```{r} -->
+<!-- library(polycor) -->
+<!-- library(nFactors) -->
+<!-- hetcor_matrix <- hetcor(df_clean, polyserial = TRUE) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- ev_poly <- eigen(hetcor_matrix$correlations) # get eigenvalues -->
+
+<!-- ev_poly$values -->
+
+<!-- # Applying the CNG test -->
+<!-- cng_results <- efa.CNG(hetcor_matrix$correlations, n.obs = nrow(df)) -->
+
+<!-- # The CNG test results include the suggested number of factors to retain -->
+<!-- print(cng_results) -->
+
+<!-- ``` -->
+
