@@ -88,23 +88,17 @@ emm_options(lmerTest.limit = 6210)
 
 
 
-
-
-
-
-
-
-
-
-
-
 Trust is fundamental to human social interactions, enabling smooth relationships at both interpersonal and intergroup levels.  The study of psychopathology has linked deficits in trust-based constructs to the development of mental health disorders [@fonagy_mentalizing_2017].  Individuals with personality disorders often struggle to form and maintain social connections, a difficulty reflected in uncooperative behaviors – a marker for the severity of PD symptoms [@herpertz_social-cognitive_2014; @mulder_relationship_1999].
 
 One explanation for such social challenges lies in early caregiver experiences. Attachment theory [@bowlby_attachment_1978] suggests that the quality of these relationships shapes our capacity for secure attachments and trust. Individuals with higher levels of insecure attachment may recall negative trust-related experiences more easily, report fewer positive trust experiences, and use less constructive coping strategies when trust is broken [@mikulincer_attachment_1998]. Similarly, learners exposed to unreliable communicators could develop mistrust of social knowledge as a protective strategy [@fonagy_role_2014].
 
 If this adaptive mistrust is the source of social dysfunction, we can ask whether exposing those who exhibit it to cooperative and forgiving interaction partners might correct this bias.  Research in the fields of behavioral economics and psychology has explored how positive social interactions influence trust and cooperation. The use of the repeated trust game (RTG), a well-established experimental approach, has allowed for the analysis of the development of trust through ongoing interactions [@joyce_trust_1995]. In this paradigm, cycles of mutual trust, where each party's trust is reciprocated with trustworthiness, have the effect of enhancing cooperative behaviors and trust levels, even among individuals who are initially inclined to be distrustful [@king-casas_getting_2005]. @fowler_cooperative_2010 studied behavior in social networks interacting in a public goods game and found that cooperative behavior tends to cluster, suggesting that exposure to cooperative peers can lead to more cooperative behavior. Similarly, research on social learning theory [@bandura_social_1977] has long demonstrated that individuals learn and model the behavior of those around them, indicating that if someone is consistently exposed to cooperative and positive individuals, they're likely to emulate this behavior. These insights highlight that engaging with compassionate and forgiving others can be an effective method for mitigating deeply ingrained mistrust.
 
-In this study, we use a randomized control trial to test a manipulation aimed at repairing potential breakdowns in RTG cooperation. Participants are exposed to agents designed with a limited propensity for retaliation, potentially mitigating ingrained mistrust. We stratify our sample based on rejection sensitivity (RS): a tendency to anxiously expect, readily perceive, and intensely react to rejection. It has been identified as a potential mechanism linking early interpersonal trauma to negative mental health outcomes [@downey_early_1997]. Extensive research demonstrates strong associations between rejection sensitivity and various mental health conditions, including depression, anxiety, personality disorders, and self-harm (for a review, see @gao_associations_2017). However little is known about whether rejection sensitivity is linked to mistrust and difficulties in cooperation in social dilemmas. Finally, the computerized investor in the RTG was programmed to play according to a hidden Markov model estimated from real players' data in prior research. A key aspect of this model is that the actions of the investor depend on a latent "trust state" which reacts dynamically to the trustees' returns simulating real-life trust-building scenarios. Such a model, informed by empirical data and integrating a responsive trust mechanism, represents a novel approach to study interactive behavior in multi-player games whilst keeping a high degree of experimental control.
+In this study, we use a randomized control trial to test an exposure manipulation aimed at repairing potential breakdowns in RTG cooperation. We stratify the sample of participants based on rejection sensitivity (RS): a tendency to anxiously expect, readily perceive, and intensely react to rejection. It has been identified as a potential mechanism linking early interpersonal trauma to negative mental health outcomes [@downey_early_1997]. Extensive research demonstrates strong associations between rejection sensitivity and various mental health conditions, including depression, anxiety, personality disorders, and self-harm (for a review, see @gao_associations_2017). However little is known about whether rejection sensitivity is linked to mistrust and difficulties in cooperation in social dilemmas.
+
+
+Participants are exposed to artificial agents designed with a limited propensity for retaliation, potentially mitigating ingrained mistrust. The computerized investor in the RTG was programmed to play using a generative model of how humans play fit to real players' data from prior studies. A key aspect of this model is that the actions of the investor depend on a latent "trust state" which reacts dynamically to the trustees' returns simulating real-life trust-building scenarios. An advantage of having a generative model of behavior is the possibility of controlling different aspects of the agent's strategy such as its general policy, the propensity to cooperate actively or the propensity to retaliate after breakdowns of cooperation. Such generative  model of behavior, informed by empirical data and integrating a responsive trust mechanism, represent a novel approach to study interactive behavior in multi-player games whilst keeping a high degree of experimental control.
+
 
 
 # Methods
@@ -146,6 +140,8 @@ RS_data <- df_screening %>%  mutate(high_RS = factor(ifelse(RS_score > 15, 1, 0)
 d_finished <- d_finished %>%
   inner_join(RS_data %>% dplyr::select(id, RS_score, high_RS), by = "id")
 
+save(d_finished, file = "data/d_finished.RData")
+
 
 # Summarize to count the number of participants for each Condition within each high_RS level
 temp <- d_finished %>% dplyr::select(id, condition.f, high_RS) %>% 
@@ -161,7 +157,7 @@ print(temp)
 
 A total of 206 participants were recruited on the Prolific Academic platform (prolific.co).
 <!-- The mean age of participants was `r round(mean(as.numeric(d_finished$exitSurvey.age), na.rm=TRUE),1)` years, with a `r round(sd(as.numeric(d_finished$exitSurvey.age), na.rm=TRUE),1)` years standard deviation.  -->
-Participants were paid a fixed fee of £6 plus a bonus payment dependent on their performance that averaged £XXX. Participants were pre-screened on Prolific using the Rejection Sensitivity Questionnaire to form two similarly sized groups: One with high (RSQ score > 15) and the other with low rejection sensitivity (RSQ score < 10).
+Participants were paid a fixed fee of £6 plus a bonus payment dependent on their performance that averaged £0.5. Participants were pre-screened on Prolific using the Rejection Sensitivity Questionnaire to form two similarly sized groups: One with high (RSQ score > 15) and the other with low rejection sensitivity (RSQ score < 10).
 
 ## Design and Procedure
 
@@ -442,7 +438,7 @@ where:
 
 
 
-The model was estimated using the `afex` package [@singmann_afex_2022] in R. More complex models with additional random effects could not be estimated reliably, and as such the estimated model can be considered to include the optimal random effects structure [@matuschek_balancing_2017]. A similar process was used to establish the random effects structures of other linear mixed-effects models used throughout the statistical analyses. For the $F$-tests, we used the Kenward-Roger approximation to the degrees of freedom, as implemented in the R package "afex". We Z-transform the Investment variable as centering is beneficial to interpreting the main effects more easily in the presence of interactions.
+The model was estimated using the `afex` package [@singmann_afex_2022] in R. More complex models with additional random effects could not be estimated reliably, and as such the estimated model can be considered to include the optimal random effects structure [@matuschek_balancing_2017]. A similar process was used to establish the random effects structures of other linear mixed-effects models used throughout the statistical analyses. For the $F$-tests, we used the Kenward-Roger approximation to the degrees of freedom, as implemented in the R package "afex". We Z-transform the Investment variable (subtract the overall investment mean and divide by overall standard deviation) as centering is beneficial to interpreting the main effects more easily in the presence of interactions.
 
 <!-- To model participants' returns in the RTG across games and conditions, we fit various hidden Markov models [@visser2022hidden] to participants' returns using the depmixS4 package [@visser_depmixs4_2021] for R. The transition between latent states is assumed to depend on the investment received and a dummy variable to characterise the group that the participant belongs to. Details on how the models are constructed can be found in the supplement. We fit models with different numbers of hidden states, and use the Bayesian Information Criterion [@schwarz_estimating_1978-1] to select the best model. -->
 
@@ -486,18 +482,18 @@ d_finished <- d_finished  %>% mutate( gameNum.f = factor(gameNumber,labels = c("
 #######################    Pre-processing player ratings 
 
 # Pivot longer ratings on each attribute 
-df_coop <- d_finished %>% dplyr::select(playerId,condition.f,contains("cooperative")) %>%  
+df_coop <- d_finished %>% dplyr::select(playerId,condition.f,contains("cooperative"),high_RS) %>%  
   pivot_longer(cols=contains("cooperative"), names_to = c("game"), names_pattern ="rating_cooperative_(.*)", values_to = "rating_coop") %>% distinct()
 
-df_forgiv <- d_finished %>% dplyr::select(playerId,condition.f,contains("forgiving")) %>%
+df_forgiv <- d_finished %>% dplyr::select(playerId,condition.f,contains("forgiving"),high_RS) %>%
   pivot_longer(cols=contains("forgiving"), names_to = c("game"), names_pattern ="rating_forgiving_(.*)", values_to = "rating_forgiving") %>% distinct()
 
-df_playAgain <- d_finished %>% dplyr::select(playerId,condition.f,contains("again")) %>%  
+df_playAgain <- d_finished %>% dplyr::select(playerId,condition.f,contains("again"),high_RS) %>%  
   pivot_longer(cols=contains("again"), names_to = c("game"), names_pattern ="rating_playAgain_(.*)", values_to = "rating_playAgain") %>% distinct()
 
 #merge all data frames together
 datRatings <- list(df_coop, df_forgiv,df_playAgain) %>% 
-              reduce(full_join, by=c('playerId','game','condition.f')) %>%
+              reduce(full_join, by=c('playerId','game','condition.f','high_RS')) %>%
               mutate(gameNum.f = factor(game,labels = c("pre", "expo1", "expo2", "expo3","post"),
                                       levels=c("1", "11", "12", "13", "2")))
 
@@ -593,10 +589,18 @@ ggpairs(numerical_data)
 ```{r corrPayoffs}
 
 temp2 <- d_finished %>% dplyr::filter(gameNum.f %in% c("pre", "post")) %>%
-  dplyr::select(id, payoffTrust1, payoffTrust2, condition.f) %>%
+  dplyr::select(id, payoffTrust1, payoffTrust2, condition.f, RS_score, LPFS_score) %>%
+  mutate(perf = payoffTrust1 + payoffTrust2) %>% 
   unique()
 
 
+# #                            Bonus Calculation
+# avg_perf <- mean(temp2$perf)
+# lowRS_bonus <- temp2 %>% filter(high_RS== "low RS") %>% mutate(bonus= round(0.5*perf/avg_perf,2)) %>% dplyr::select(id, bonus)
+# write.csv(lowRS_bonus,"data/bonusLow.csv")
+# 
+# highRS_bonus <- temp2 %>% filter(high_RS== "high RS") %>% mutate(bonus= round(0.5*perf/avg_perf,2)) %>% dplyr::select(id, bonus)
+# write.csv(highRS_bonus,"data/bonusHigh.csv")
 
 ggplot(data = temp2, aes(x = payoffTrust1, y = payoffTrust2)) +
   geom_point() +  # Color points by id
@@ -604,9 +608,32 @@ ggplot(data = temp2, aes(x = payoffTrust1, y = payoffTrust2)) +
   theme_minimal() +
   theme(legend.position = "right")
 
-cor(temp2$payoffTrust1,temp2$payoffTrust2)
+
 
 ```
+
+```{r}
+# Sanity checks 
+
+# prolific_highRS <- read.csv(file="/Users/mbp17/Downloads/prolific_export_highRS.csv")
+# 
+# # Which Ids in highRS file but not in Prolific? 
+# 
+# # Find IDs in highRS_bonus that are not in prolific_highRS
+# ids_in_highRS_not_in_prolific <- setdiff(highRS_bonus$id, prolific_highRS$Participant.id)
+# 
+# # Find IDs in prolific_highRS that are not in highRS_bonus
+# ids_in_prolific_not_in_highRS <- setdiff(prolific_highRS$Participant.id, highRS_bonus$id)
+# 
+# # ids_in_highRS_not_in_prolific now contains IDs that are in highRS_bonus but not in prolific_highRS
+# # ids_in_prolific_not_in_highRS now contains IDs that are in prolific_highRS but not in highRS_bonus
+# 
+# # print these variables to see the IDs
+# print(ids_in_highRS_not_in_prolific)
+# print(ids_in_prolific_not_in_highRS)
+```
+
+
 
 
 
@@ -646,12 +673,12 @@ df_long_ratings <- datRatings %>%
     names_to = "rating_type", 
     values_to = "rating_value"
   ) %>%
-  dplyr::select(playerId, condition.f, gameNum.f, rating_type, rating_value)
+  dplyr::select(playerId, condition.f, gameNum.f, rating_type, rating_value, high_RS)
 
 
 # First, calculate the mean and SEM for each group
 summary_df <- df_long_ratings %>%
-  group_by(gameNum.f, condition.f, rating_type) %>%
+  group_by(gameNum.f, condition.f, rating_type, high_RS) %>%
   summarise(
     mean = mean(rating_value, na.rm = TRUE),
     sem = sd(rating_value, na.rm = TRUE)/sqrt(n())
@@ -672,7 +699,7 @@ summary_df <- df_long_ratings %>%
 # Filter only trust rounds and create % returns and investments 
 
 avg_ret_df <- d_finished %>%
-  dplyr::select(playerId,roundType,investment,returns,roundNum,gameNum.f,condition.f, phase.f, high_RS) %>% 
+  dplyr::select(playerId,roundType,investment,returns,roundNum,gameNum.f,condition.f, phase.f, high_RS, LPFS_score, RS_score) %>% 
   filter(roundType=="trust",!is.na(roundNum)) %>% 
   mutate(roundNum = as.numeric(as.character(roundNum))) %>%
   mutate(inv_scaled = as.vector(scale(investment))) %>% 
@@ -777,9 +804,9 @@ ggplot(avg_ret_df %>% filter(gameNum.f %in% c("expo1","expo2","expo3")),aes(x=ro
 
 ```{r afexModCoop, cache=TRUE}
 
-mod_rating_coop <- mixed( rating_coop ~ gameNum.f*condition.f + (1 | playerId), datRatings, REML= TRUE, method="KR")
+mod_rating_coop <- mixed( rating_coop ~ gameNum.f*condition.f*high_RS + (1 | playerId), datRatings, REML= TRUE, method="KR")
 
-#summary(mod_rating_coop)
+summary(mod_rating_coop)
 
 ```
 
@@ -816,9 +843,28 @@ comp3_coop
 
 ```
 
+```{r}
+# Compute the estimated marginal means (EMMs) for the interaction
+emm_coop_interaction <- emmeans(mod_rating_coop, ~ gameNum.f | condition.f * high_RS)
+
+comp1_coop_interaction <- contrast(emm_coop_interaction, list("Pre vs Post" = contrast_matrix[1,]))
+comp2_coop_interaction <- contrast(emm_coop_interaction, list("Pre vs Expo" = contrast_matrix[2,]))
+# comp3_coop_interaction <- contrast(emm_coop_interaction, list("Post vs Expo" = contrast_matrix[3,]))
+
+# Output the results
+print("Pre vs Post")
+comp1_coop_interaction
+print("Pre vs Expo")
+test(comp2_coop_interaction, adjust="bonferroni")
+test(comp2_coop_interaction)
+
+# test_comp3_coop_interaction
+```
+
+
 ```{r afexModForg}
 
-mod_rating_forg <- mixed( rating_forgiving ~ gameNum.f*condition.f + (1 | playerId), datRatings, REML= TRUE, method="KR")
+mod_rating_forg <- mixed( rating_forgiving ~ gameNum.f*condition.f*high_RS + (1 | playerId), datRatings, REML= TRUE, method="KR")
 
 #summary(mod_rating_forg)
 
@@ -843,9 +889,26 @@ comp3_forg
 
 ```
 
+```{r}
+# Compute the estimated marginal means (EMMs) for the interaction
+emm_forg_interaction <- emmeans(mod_rating_forg, ~ gameNum.f | condition.f * high_RS)
+
+comp1_forg_interaction <- contrast(emm_forg_interaction, list("Pre vs Post" = contrast_matrix[1,]))
+comp2_forg_interaction <- contrast(emm_forg_interaction, list("Pre vs Expo" = contrast_matrix[2,]))
+# comp3_forg_interaction <- contrast(emm_forg_interaction, list("Post vs Expo" = contrast_matrix[3,]))
+
+# Output the results
+print("Pre vs Post")
+comp1_forg_interaction
+print("Pre vs Expo")
+comp2_forg_interaction
+
+# test_comp3_forg_interaction
+```
+
 ```{r afexModAgain}
 
-mod_rating_again <- mixed( rating_playAgain ~ gameNum.f*condition.f + (1 | playerId), datRatings, REML= TRUE, method="KR")
+mod_rating_again <- mixed( rating_playAgain ~ gameNum.f*condition.f*high_RS + (1 | playerId), datRatings, REML= TRUE, method="KR")
 
 #summary(mod_rating_again)
 
@@ -871,30 +934,96 @@ comp3_again
 
 ```
 
+```{r}
+# Compute the estimated marginal means (EMMs) for the interaction
+emm_again_interaction <- emmeans(mod_rating_again, ~ gameNum.f | condition.f * high_RS)
 
+comp1_again_interaction <- contrast(emm_again_interaction, list("Pre vs Post" = contrast_matrix[1,]))
+comp2_again_interaction <- contrast(emm_again_interaction, list("Pre vs Expo" = contrast_matrix[2,]))
+# comp3_again_interaction <- contrast(emm_again_interaction, list("Post vs Expo" = contrast_matrix[3,]))
+
+# Output the results
+print("Pre vs Post")
+comp1_again_interaction
+print("Pre vs Expo")
+comp2_again_interaction
+
+# test_comp3_again_interaction
+```
 
 
 ## Player ratings
 
  
 
-Figure \@ref(fig:plotRatings) shows participants' ratings of each player they faced by condition. Compared to the first RTG game, participants in the manipulation condition rated the investors they faced in the exposure phase (the forgiving AI) as more Cooperative `r papaja::apa_print(comp2_coop)$full_result$Manipulation_PrevsExpo`. No difference in ratings on forgiveness and whether they would like to face them again. Those in the control condition rated the investors faced in the exposure group (same HMM) as less cooperative `r papaja::apa_print(comp2_coop)$full_result$Control_PrevsExpo`, less forgiving `r papaja::apa_print(comp2_forg)$full_result$Control_PrevsExpo`, and were less keen on facing them again `r papaja::apa_print(comp2_again)$full_result$Control_PrevsExpo`. 
+Figure \@ref(fig:plotRatings) shows participants' ratings of each player they faced by condition and RS group. We will focus on two contrasts to analyse the ratings, by Condition and RS group. The first is between the rating in the first phase ("pre") when participants phase the human-like HMM, and the average rating during the exposure phase (average of "expo1", "expo2" and "expo3") where they either face the forgiving HMM (Manipulation condition) or the human-like HMM again (Control condition). The second contrast is between the "pre" and "post" phases of the experiment where in both conditions participants face the same human-like HMM.
+
+### Comparing pre and exposure ratings
+
+For those with high Rejection Sensitivity, participants in the Manipulation condition rated the investors they faced in the exposure phase (the forgiving HMM) as more Cooperative `r papaja::apa_print(comp2_coop_interaction)$full_result$Manipulation_HighRS_PrevsExpo`. There was no difference in ratings on forgiveness and whether they would like to face the co-players again. 
+Those in the control condition rated the investors faced in the exposure group (same HMM) as less cooperative `r papaja::apa_print(comp2_coop_interaction)$full_result$Control_HighRS_PrevsExpo`, less forgiving `r papaja::apa_print(comp2_forg_interaction)$full_result$Control_HighRS_PrevsExpo`, and were less keen on facing them again `r papaja::apa_print(comp2_again_interaction)$full_result$Control_HighRS_PrevsExpo`.
+
+For those with low Rejection Sensitivity, there was no difference in any of the ratings between the "pre" and "exposure" phases for the Manipulation condition. For the Control condition, participants indicated less willingness to face the exposure co-player compared to the "pre" player, `r papaja::apa_print(comp2_again_interaction)$full_result$Control_LowRS_PrevsExpo` but also did not differ on cooperation and forgiveness ratings. In summary, those with low rejection sensitivity had a mostly undifferentiated perception of players between the pre and exposure phases, even when the co-player was in fact designed to be more forgiving. In contrast, we see that exposing participants with high Rejection Sensitivity to a more cooperative and more forgiving agent has compensated for the decrease in ratings that would have occurred if faced with a co-player with the exact same strategy.
 
 ```{r plotRatings,include=T, echo=FALSE, fig.cap="Averages and standard errors of the participants ratings of the opponent for each game and condition. Pre and post are the 15 round repeated trust games before and after the exposure phase respectively. The games titled expo 1 to 3 are the three 7 round games during the exposure phase. We note that absent the exposure to the forgiving AI, the ratings get worse on aggregate even through the participant faces the same human like HMM. In the manipulation condition, participants rate the nicer HMM as more cooperative but not more forgiving. When they face the human-like HMM again, its rating are considerably worse. ",fig.align="center", fig.width=6, fig.height = 6}
-# Now create a plot using geom_errorbar for SEM and geom_point for the mean
-ggplot(summary_df, aes(x = gameNum.f, y = mean, group = rating_type, color = rating_type)) +
-  geom_errorbar(aes(ymin = mean-sem, ymax = mean+sem), width = 0.2) +
-  geom_point(position = position_dodge(width = 0.5), size = 3) +
-  facet_wrap(~~rating_type*condition.f, nrow = 3, ncol = 2, scales = "free") +
-  labs(x = "Game Number", y = "Mean Rating") +
+
+# ggplot(summary_df, aes(x = gameNum.f, y = mean, group = rating_type, color = rating_type)) +
+#   geom_errorbar(aes(ymin = mean-sem, ymax = mean+sem), width = 0.2) +
+#   geom_point(position = position_dodge(width = 0.5), size = 3) +
+#   facet_wrap(~~rating_type*condition.f, nrow = 3, ncol = 2, scales = "free") +
+#   labs(x = "Game Number", y = "Mean Rating") +
+#   theme_minimal() +
+#   theme(legend.position = "bottom")
+
+ggplot(summary_df, aes(x = gameNum.f, y = mean, group = interaction(rating_type, condition.f), color = rating_type)) +
+  geom_errorbar(aes(ymin = mean - sem, ymax = mean + sem), width = .1, position = position_dodge(width = 0.25)) +
+  geom_line(linetype = "dashed", position = position_dodge(width = 0.25)) +
+  geom_point(position = position_dodge(width = 0.25), size = 3) +
+  facet_wrap(~high_RS*condition.f, scales = "free_x") +
+  labs(x = "Phase", y = "Mean Rating", color = "Rating Type") +
+  scale_color_manual(values = c("rating_coop" = "blue", "rating_forgiving" = "red", "rating_playAgain" = "green"),
+                     labels = c("Cooperative", "Forgiving", "Play again")) +
   theme_minimal() +
   theme(legend.position = "bottom")
 
 ```
 
-Comparing post-exposure to exposure ratings, participants in the manipulation condition rated the investors they faced in the exposure phase as less cooperative`r papaja::apa_print(comp3_coop)$full_result$Manipulation_PostvsExpo`, less forgiving `r papaja::apa_print(comp3_forg)$full_result$Manipulation_PostvsExpo`, and were less willing to face them again `r papaja::apa_print(comp3_again)$full_result$Manipulation_PostvsExpo`. Ratings for those in the control group did not differ on how cooperative, forgiving the investors were, and on willingness to face them again. 
+```{r}
+library(ggplot2)
 
-Finally, comparing ratings of the investors before and after the exposure phase, those in the manipulation condition rated them similarly on cooperation, lower on forgiveness `r papaja::apa_print(comp1_forg)$full_result$Manipulation_PrevsPost` and lower on willingness to face them again `r papaja::apa_print(comp1_again)$full_result$Manipulation_PrevsPost`. Those in the control condition rated the investors post the exposure phase lower on all three attributes. 
+ggplot(summary_df, aes(x = gameNum.f, y = mean, group = interaction(rating_type, condition.f))) +
+  geom_errorbar(aes(ymin = mean - sem, ymax = mean + sem, color = condition.f), 
+                width = .1, position = position_dodge(width = 0.25)) +
+  geom_line(aes(color = condition.f), linetype = "dashed", position = position_dodge(width = 0.25)) +
+  geom_point(aes(color = condition.f), position = position_dodge(width = 0.25), size = 3) +
+  facet_grid(high_RS ~ rating_type, scales = "free_x") +
+  scale_color_manual(values = c("Control" = "blue", "Manipulation" = "red")) +
+  labs(x = "Phase", y = "Mean Rating", color = "Condition") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+
+```
+
+### Comparing pre and post ratings
+<!-- Comparing post-exposure to exposure ratings, participants in the manipulation condition rated the investors they faced in the exposure phase as less cooperative,  -->
+<!-- `r papaja::apa_print(comp3_coop)$full_result$Manipulation_PostvsExpo`, less forgiving `r papaja::apa_print(comp3_forg)$full_result$Manipulation_PostvsExpo`, and were less willing to face them again `r papaja::apa_print(comp3_again)$full_result$Manipulation_PostvsExpo`. Ratings for those in the control group did not differ on how cooperative, forgiving the investors were, and on willingness to face them again.  -->
+
+Participants high on Rejection Sensitivity in the Manipulation condition rated the co-players in the "post" phase similarly on cooperation, lower on 
+forgiveness `r papaja::apa_print(comp1_forg_interaction)$full_result$Manipulation_HighRS_PrevsPost`,
+and lower on willingness to face them again `r papaja::apa_print(comp1_again_interaction)$full_result$Manipulation_HighRS_PrevsPost`. 
+Those in the Control condition rated the investors post the exposure phase lower on all three attributes 
+(Cooperation:`r papaja::apa_print(comp1_coop_interaction)$full_result$Control_HighRS_PrevsPost`, 
+Forgiveness: `r papaja::apa_print(comp1_forg_interaction)$full_result$Control_HighRS_PrevsPost`, 
+Play again: `r papaja::apa_print(comp1_again_interaction)$full_result$Control_HighRS_PrevsPost`). 
+
+For participants low on Rejection Sensitivity, those in the Manipulation condition rated the co-players in the "post" phase lower on all three attributes 
+(Cooperation:`r papaja::apa_print(comp1_coop_interaction)$full_result$Manipulation_LowRS_PrevsPost`, 
+Forgiveness: `r papaja::apa_print(comp1_forg_interaction)$full_result$Manipulation_LowRS_PrevsPost`, 
+Play again: `r papaja::apa_print(comp1_again_interaction)$full_result$Manipulation_LowRS_PrevsPost`). 
+Those in the Control condition did not differ in their ratings of the "pre" and "post" phase players. 
+
+In summary, we again see that those with low RS accurately perceive the co-player as similar on all attributes throughout the phases in the control condition. In contrast, the high RS group shows a negative bias towards the co-players after the "pre" phase in the control condition even though the player continues to use the same strategy. After exposure to the forgiving HMM, both groups  rates the "post" co-player worse than the "pre" even though they are the same. 
 
 ```{r}
 d_finished %>% 
@@ -904,8 +1033,6 @@ d_finished %>%
   summarise(Count = n()) %>%
   mutate(Percentage = (Count / sum(Count)) * 100)
 ```
-
-When asked during debrief whether they thought the investors they faced were Human or not, $41$% of participants thought they were either facing a human or were not sure of the nature of the co-player. When asked to justify their choice, many answers reflected participants projecting human traits such as "spitefulness" or "greed" onto the artificial co-player's behavior.
 
 
 
@@ -922,23 +1049,26 @@ summary(mod_returns_pct_RS)
 
 ```
 
+```{r}
+saveRDS(summary(mod_returns_pct_RS), "data/mod_returns_pct_RS.RDS")
+```
+
+
+```{r}
+contrasts(prepost_df$phase.f)
+contrasts(prepost_df$condition.f)
+contrasts(prepost_df$high_RS)
+
+```
+```{r}
+RS_model <- lm( RS_score ~ ret_pct_na*inv_scaled + (1 + phase.f| playerId), prepost_df, REML= TRUE, method="KR")
+```
+
+
 ```{r prepostByCond, cache=TRUE}
 prepost_bycond <- pairs(emmeans::emmeans(mod_returns_pct_RS, c("phase.f"), by = "condition.f", pbkrtest.limit = 6300))
 ```
 
-```{r}
-library(ggplot2)
-
-# 'inv_scaled' is the continuous predictor, and 'outcome' is your dependent variable.
-ggplot(prepost_df, aes(x = inv_scaled, y = ret_pct_na, color = phase.f)) +
-  geom_point(alpha = 0.6) + # Adjust point transparency with alpha
-  geom_smooth(method = "lm", se = FALSE) + # Add linear regression lines without confidence intervals
-  labs(title = "Effect of inv_scaled on Outcome by Condition",
-       x = "inv_scaled", y = "Outcome") +
-  theme_minimal() +
-  facet_wrap(~condition.f)
-
-```
 
 
 ```{r modemmeans, cache=TRUE, include=F}
@@ -953,13 +1083,24 @@ summary(contrasts)
 results_df <- as.data.frame(summary(contrasts))
 ```
 
+
+<!-- EFFECT SIZES -->
+```{r}
+# Load the necessary packages
+
+library(sjstats)
+effectsize::eta_squared(mod_returns_pct_RS)
+```
+
+
+
 On average, investments and returns, as shown in Figure \ref{fig:gamesPlot}, fell within the documented range of 40-60% of the endowment for investments and 35-50% of the total yield for returns, as reported in previous studies [@charness_investment_2008; @fiedler_social_2011].
 
-Mixed-effects analysis on the percentage returns shows a significant main effect of Phase (Pre vs. Post RTG game), `r papaja::apa_print(mod_returns_pct_RS)$full_result$phase_f`, with higher percentage returns in the first RTG compared to the second. Importantly, we also find an interaction between Condition and Phase (RTG pre- vs. post-intervention), `r papaja::apa_print(mod_returns_pct_RS)$full_result$phase_f_condition_f`. Post-hoc tests show a decrease in the percentage returned only in the intervention condition, pre - post,
-`r papaja::apa_print(prepost_bycond)$full_result$Manipulation_Pre_post`, but no change in the control condition. Looking at this interaction effect for the two levels of RS, we find a three way interaction between Phase, Condition and RS, such that this decrease in returns in the manipulation condition is present in the low RS group `r papaja::apa_print(contrasts)$full_result$Manipulation_LowRS_Pre_post` but not in the high RS group.  
+Mixed-effects analysis on the percentage returns shows a significant main effect of Phase (Pre vs. Post RTG game), `r papaja::apa_print(mod_returns_pct_RS)$full_result$phase_f`, with higher percentage returns in the first RTG compared to the second. Importantly, we also find an interaction between Condition and Phase (RTG pre- vs. post-manipulation), `r papaja::apa_print(mod_returns_pct_RS)$full_result$phase_f_condition_f`. As shown in Figure \ref{fig:violinPlots}, post-hoc tests confirm a decrease in the percentage returned only in the manipulation condition, pre - post,
+`r papaja::apa_print(prepost_bycond)$full_result$Manipulation_Pre_post`, but no change in the control condition.  We find no interaction between Phase, Condition and RS, suggesting that there was no difference between RS groups for this interaction.
 
 
-```{r gamesPlot, include=T, echo=FALSE, fig.cap="Averages and standard errors of the trustee's return as a percentage of the multiplied investment received by Condition, Phase, and game round. The blue line shows the returns pre-manipulation and the green line post-manipulation. We note a different reaction to the pre-programmed one-off low investment between the two conditions: Whilst there is a dip in returns pre-manipulation for both conditions,  post manipulation we see higher returns in the manipulation condition compared to the dip in returns seen in the control condition in the right panel",fig.align="center", fig.width=6, fig.height = 6}
+```{r gamesPlot, include=T, echo=FALSE, fig.cap="Averages and standard errors of the trustee's return as a percentage of the multiplied investment received by Condition, Phase, and game round. The blue line shows the returns pre-manipulation and the green line post-manipulation. We note a different reaction to the pre-programmed one-off low investment between the two conditions: Whilst there is a dip in returns pre-manipulation for both conditions,  post manipulation we see higher returns in the manipulation condition compared to the dip in returns seen in the control condition in the right panel",fig.align="center", fig.width=6, fig.height = 4}
 
 # Create a data frame for the vertical linesr
 vline_data <- data.frame(
@@ -993,7 +1134,7 @@ ggplot(avg_ret_df %>% filter(gameNum.f %in% c("pre","post")), aes(x=as.factor(ro
   guides(color = guide_legend(override.aes = list(fill = NA)))+  # Remove fill for color legend keys
   guides(color = guide_legend(title = "Participant Returns Proportions", override.aes = list(fill = NA)),
          linetype = guide_legend(title = "Defection round")) +
-  facet_wrap(~high_RS*condition.f)
+  facet_wrap(~condition.f)
 
 
 ```
@@ -1002,9 +1143,86 @@ ggplot(avg_ret_df %>% filter(gameNum.f %in% c("pre","post")), aes(x=as.factor(ro
 There was also a significant main effect of Investment, 
 `r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_returns_pct_RS)$full_result$inv_scaled)`,
 such that higher investments were associated with higher percentage returns indicating positive reciprocity. An Investment by Condition interaction, 
-`r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_returns_pct_RS)$full_result$condition_f_inv_scaled)`, indicates that returns were more affected by investments in the control condition. We also find a three way interaction between Phase,  Investment and RS
-`r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_returns_pct_RS)$full_result$gameNum_f_condition_f_inv_scaled)`, showing that the differentiated effect of the investment on the proportion returned by RS group is itself moderated by the Phase (pre- vs post intervention).
+`r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_returns_pct_RS)$full_result$condition_f_inv_scaled)`, reflected  that returns were more affected by investments in the control condition. We also find a three way interaction between Phase,  Investment and RS
+`r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_returns_pct_RS)$full_result$gameNum_f_condition_f_inv_scaled)`, showing that the differentiated effect of the investment on the proportion returned by RS group is itself moderated by the Phase (pre- vs post manipulation). Finally, we find a four-way interaction between Condition, Phase, Investment and RS `r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_returns_pct_RS)$full_result$phase_f_condition_f_inv_scaled_high_RS)`. 
 
+```{r fourwayInteractionPlot, include=T, fig.cap ="Effect of investment on returns by condition, phase and RS group" }
+
+
+library(ggplot2)
+
+# 
+# ggplot(prepost_df, aes(x = inv_scaled, y = ret_pct_na, color = phase.f)) +
+#   # geom_point(alpha = 0.6) + # Adjust point transparency with alpha
+#   geom_smooth(method = "lm", se = FALSE) + # Add linear regression lines without confidence intervals
+#   labs(title = "Effect of inv_scaled on Outcome by Condition",
+#        x = "inv_scaled", y = "Outcome") +
+#   theme_minimal() +
+#   facet_wrap(~high_RS)
+
+# 'inv_scaled' is the continuous predictor, and 'outcome' is your dependent variable.
+ggplot(prepost_df, aes(x = inv_scaled, y = ret_pct_na, color = phase.f)) +
+  # geom_point(alpha = 0.6) + # Adjust point transparency with alpha
+  geom_smooth(method = "lm", se = FALSE) + # Add linear regression lines without confidence intervals
+  labs(x = "Investment Z-values", y = "Return proportion", color = "Experiment Phase") +
+  theme_minimal() +
+  facet_wrap(~condition.f*high_RS)+
+  theme(legend.position = "bottom")
+  
+
+```
+
+To interpret this interaction we plot the effect of the Investment on returns for each level of Condition, Phase and RS. Figure \ref{fig:fourwayInteractionPlot} shows that while the effect of investment on returns is similar across RS groups and across phases in the Control condition, the Manipulation condition shows a higher effect of investment in the post phase compared to pre in the low RS group, but a lower effect of investment compared to before for the high RS group. This suggests that high RS participants based their return less on the investment after being exposed to the forgiving AI compared to the low RS group.
+
+
+```{r invMod, cache=TRUE}
+
+mod_invs_RS <- mixed( investment ~ phase.f*condition.f*high_RS + (1 + phase.f| playerId), prepost_df, REML= TRUE, method="KR")
+
+summary(mod_invs_RS)
+
+
+
+```
+
+
+
+```{r violPlotsDef, cache=TRUE}
+ret_all <- afex_plot(mod_returns_pct_RS, x = "phase.f", trace = "condition.f", dodge = 0.8, error = "within",
+            mapping = c("linetype", "shape", "fill"),
+            data_geom = ggplot2::geom_boxplot,
+            data_arg = list(width = 0.5),
+            factor_levels = list(phase.f = c("Pre", "Post")),
+            legend_title = "Condition") +
+  theme_bw() +
+  labs(y = "% Returns", x = "Trust Game Phase") +
+  theme(plot.title = element_text(size = 16)) +
+  geom_signif(xmin = 1.2, xmax = 2.2, annotations = "***", y_position = 0.82, tip_length = 0.03,textsize = 3) + 
+  theme(legend.position = "bottom") 
+
+inv_all <- afex_plot(mod_invs_RS, x = "phase.f", trace = "condition.f", dodge = 0.8, error = "within",
+            mapping = c("linetype", "shape", "fill"),
+            data_geom = ggplot2::geom_boxplot,
+            data_arg = list(width = 0.5),
+            factor_levels = list(phase.f = c("Pre", "Post")),
+            legend_title = "Condition") +
+  theme_bw() +
+  labs(y = "HMM Investment", x = "Trust Game Phase") +
+  theme(plot.title = element_text(size = 16)) +
+  theme(legend.position = "bottom")
+```
+
+
+```{r violinPlots, include=T,fig.cap="Marginal means and distributions of either investments or percentage returns across participants by Phase and Condition. The top panel shows that participants in the Intervention condition returned lower proportions of the multiplied investment received in the second game compared to the first game over all ronds, whilst those in the Control condition sent back similar returns. The bottom panel shows no difference on aggregate of how the HMM invested across Phases and Conditions.",fig.align="center", fig.width=6, fig.height = 7}
+
+
+
+library(patchwork)
+
+ret_all/inv_all +  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+
+
+```
 
 
 
@@ -1017,7 +1235,7 @@ such that higher investments were associated with higher percentage returns indi
 ```{r postDefMod, cache=TRUE}
 post_def_data <- avg_ret_df %>% filter(roundType=="trust",!is.na(gameNum.f),(roundNum >= 12 & gameNum.f =="pre")| (roundNum >= 13 & gameNum.f =="post"))
 
-mod_retPostDef_RS <- mixed( ret_pct_na ~ phase.f*condition.f*inv_scaled*high_RS + (1 + phase.f| playerId), post_def_data , REML= TRUE, method="KR")
+mod_retPostDef_RS <- mixed( ret_pct_na ~ phase.f*condition.f*inv_scaled + (1 + phase.f| playerId), post_def_data , REML= TRUE, method="KR")
 
 summary(mod_retPostDef_RS)
 ```
@@ -1027,11 +1245,11 @@ phasePairs <- pairs(emmeans::emmeans(mod_retPostDef_RS, c("phase.f"), pbkrtest.l
 phasePairs
 ```
 
-Running the same mixed effects model only on the trials following the pre-programmed defection by the HMM agent, we find a significant main effect of Phase `r papaja::apa_print(mod_retPostDef_RS)$full_result$phase_f` with returns lower in the second game post defection trials compared to the first. We also find a main effect of Investment 
+Did participants learn to be more forgiving and cooperative after witnessing the pre-programmed defection by the HMM investor?. To explore this question, we restrict the analysis to the trials following the pre-programmed defection by the HMM agent in both the "pre" (trials 12 to 15) and the "post" phases (trials 13 to 15).  We fit the same mixed effects model as for all the trials with the exception of the RS variable. This is because RS did not show main or interaction effects in the main model, and also due to the necessity of running a simpler model to accommodate the low number of trials. We find a significant main effect of Phase `r papaja::apa_print(mod_retPostDef_RS)$full_result$phase_f` with returns lower in the second game post defection trials compared to the first. We also find a main effect of Investment 
 `r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_retPostDef_RS)$full_result$inv_scaled)` 
 where participants continued to return higher proportions when receiving higher investments. 
 Finally, we still find an Investment by Condition interaction 
-`r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_returns_pct_RS)$full_result$condition_f_inv_scaled)` showing a lower effects of investment on the manipulation condition compared to the control condition in post-defection trials.  
+`r gsub("(\\d{1,3}),(\\d{3})", "\\1\\2", papaja::apa_print(mod_returns_pct_RS)$full_result$condition_f_inv_scaled)` showing a lower effects of investment on the manipulation condition compared to the control condition in post-defection trials. 
 
 
 
@@ -1058,41 +1276,27 @@ ggplot(prepost_df %>% filter(condition.f=="Manipulation", high_RS == "high RS", 
 
 
 
-### HMM investments
+### HMM investor
 <!-- Linear mixed effects model for investments -->
+To test whether the HMM investors' behavior differed between Phases, Conditions and RS groups, we estimate a linear mixed-effects model of investments sent by the computerised HMM agent with Condition, Phase and RS and their interaction as fixed effects, and a similar random effects structure to the returns model. As seen in Figure \@ref(fig:violinPlots), we find no main or interaction effects, indicating HMM behavior was on aggregate similar across Phase, Conditions and RS groups.
+
+When asked during debrief whether they thought the investors they faced were Human or not, $41$% of participants thought they were either facing a human or were not sure of the nature of the co-player. When asked to justify their choice, many answers reflected participants projecting human traits such as "spitefulness" or "greed" onto the artificial co-player's behavior. 
 
 
-```{r invMod, cache=TRUE}
+### Questionnaire scores and performance
 
-mod_invs_RS <- mixed( investment ~ phase.f*condition.f*high_RS + (1 + phase.f| playerId), prepost_df, REML= TRUE, method="KR")
+<!-- We found no correlation between either the RS score and task performance, as defined by the total points accumulated in both the "pre" and "post phase of the RTG. The LPFS score was also not correlated with task performance. These two scores exhibited a positive correlation  (Rho = 0.52, p < 0.001) -->
 
-summary(mod_invs_RS)
+```{r}
+cor.test(temp2$LPFS_score, temp2$perf, method = "spearman")
+cor.test(temp2$RS_score, temp2$perf, method = "spearman")
 
-
+cor_result <- cor.test(temp2$RS_score, temp2$LPFS_score, method = "spearman")
 
 ```
 
-To explore the HMM investors' behavior across games and conditions, we estimate a linear mixed-effects model of investments sent by the computerised HMM agent with Condition, Phase and RS and their interaction as fixed effects, and a similar random effects structure to the returns model. This shows no main or interaction effects, indicating HMM behavior was on aggregate similar across Phase, Conditions and RS groups. 
 
-```{r invAfexPlot, cache=TRUE}
-# inv_all <- afex_plot(mod_invs_RS, x = "phase.f", trace = "condition.f", dodge = 0.8, error = "within",
-#             mapping = c("linetype", "shape", "fill"),
-#             data_geom = geom_violin,
-#             data_arg = list(width = 0.5),
-#             factor_levels = list(phase.f = c("Pre", "Post")), 
-#             legend_title = "Condition") + 
-#   theme_bw() + 
-#   ggtitle("All rounds investments") +
-#   labs(y = "HMM Investment", x = "Trust Game Phase") + 
-#   theme(plot.title = element_text(size = 16)) +
-#   theme(legend.position = "bottom") 
-# 
-# 
-# inv_all
-```
-
-
-
+Whilst we found a significant correlation between participant's Levels of Personality Functioning Score (LPFS) and the Rejection Sensitivity score `r papaja::apa_print(cor_result)$full_result`, there was no correlation between these and participant's return or overall task performance.
 
 
 <!-- Extracting Investor latent state from data -->
@@ -1162,6 +1366,17 @@ ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = as.factor
   labs(x = "Condition", y = "Proportion", fill = "Investor State") +
   theme_bw() +
   theme(legend.position = "bottom")
+
+state_colors <- c("happy" = "Blue", "neutral" = "#77DD77", "unhappy" = "#FF6961")
+
+# Create the histogram with stacked bars and specified colors
+ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = as.factor(investorState))) +
+  geom_bar(aes(group = investorState), position = position_stack(reverse = FALSE), stat = "identity") +
+  scale_fill_manual(values = state_colors) +
+  facet_wrap(~condition.f*gameNum.f, scales = "free_x", labeller = label_both) +
+  labs(x = "Round", fill = "Investor State", title = "Histogram of Latent States per Game and Round") +
+  theme_bw() +
+  theme(legend.position = "bottom")
 ```
 
 
@@ -1170,17 +1385,27 @@ ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = as.factor
 
 # Discussion
 
+This study leveraged a novel approach to examining the dynamics of trust and cooperation in social interactions through the utilization of Hidden Markov Models (HMMs) as artificial agents in economic games. The use of HMM-based artificial agents in economic games led to similar investment and returns to those recorded in human dyadic interactions. Participants were often uncertain whether they interacted with human or artificial investors, highlighting the agents’ realism. This validates the use of these artificial agents to probe the effectiveness of manipulations whilst keeping a high degree of experimental control. 
 
-The use of HMM-based artificial agents in economic games led to similar investment and returns to those recorded in human dyadic interactions. Participants were often uncertain whether they interacted with human or artificial investors, highlighting the agents’ realism. This validates the use of these artificial agents to probe the effectiveness of interventions whilst keeping a high degree of experimental control. Following the exposure intervention, participants reduced their returns overall. When breaking down the groups into RS subgroups, the reduction in returns was mostly from the group with low Rejection Sensitivity. The returns of those in the control group did not change between the pre and post phase of the experiment. Why did participants reduce their returns even though they were repeatedly exposed to a more cooperative and more forgiving AI? A look at how the participants rated their co-players might shed some light on what is driving this reduction in returns for those exposed to the forgiving AI. 
+Following the exposure manipulation, participants reduced their returns overall whilst the returns of those in the control group did not change between the pre and post phase of the experiment.  Why did participants reduce their returns even though they were repeatedly exposed to a more cooperative and more forgiving AI? A look at how the participants rated their co-players might shed some light on what is driving this reduction in returns for those exposed to the forgiving AI. 
 
-Those exposed to the forgiving AI rated their opponent in the post-exposure phase lower on all attributes even though they faced the same dynamic human-like HMM as pre-exposure. Indeed, the biggest ratings change in the manipulation group was for the "post" player which were lower than ratings for both the pre-exposure and exposure players. This is likely due to a *negative contrast effect*. The Contrast Effect occurs when the evaluation of a person, object, or situation is influenced by comparisons with recently encountered contrasting objects or people. If we've recently interacted with someone exceptionally nice, our perception of a normal level of niceness might be skewed, making normal behavior seem less favorable or even negative by comparison [@kobre_negative_1972]. As the most recently faced opponents were highly cooperative, this negative contrast effect may have compensated any learning transfer from being repeatedly exposed to cooperative and forgiving AI [@zentall_within-trial_2005]. If this contrast effect is indeed replicable, then an avenue for future research would be to use it to our benefit by making the participants play agents with low cooperation perception. Participants also perceived the forgiving AI during the exposure phase as more cooperative, but not more forgiving. The latter might be the result of the participants not having many opportunities to test the co-player's forgiveness propensity since most decided to continue cooperating.
+Those exposed to the forgiving AI rated their opponent in the post-exposure phase lower on all attributes even though they faced the same dynamic human-like HMM as pre-exposure. One possible explanation for this drop in rating is that participants exhibited a negative contrast effect. This occurs when the evaluation of a person, object, or situation is influenced by comparisons with recently encountered contrasting objects or people. If we've recently interacted with someone exceptionally nice, our perception of a normal level of niceness might be skewed, making normal behavior seem less favourable or even negative by comparison [@kobre_negative_1972]. As the most recently faced opponents were more forgiving and cooperative, this negative contrast effect may have trumped any learning transfer from being repeatedly exposed to cooperative and forgiving AI [@zentall_within-trial_2005]. If this contrast effect is indeed replicable, then an avenue for future research would be to use it to our benefit by making the participants play agents with low cooperation perception.
+
+<!-- Participants also perceived the forgiving AI during the exposure phase as more cooperative, but not more forgiving. The latter might be the result of the participants not having many opportunities to test the co-player's forgiveness propensity since most decided to continue cooperating. -->
+
+It is worth highlighting that Rejection Sensitivity was not correlated to overall performance in the task.  Neither did it moderate the change in returns between Conditions or have an effect on participant returns. However, in examining the player ratings by rejection sensitivity (RS) group more closely, we observe that individuals with high rejection sensitivity demonstrate a heightened attunement to changes in the behavior of their AI co-players. Specifically, when exposed to a more forgiving AI agent, these participants accurately increased their ratings of the agent, indicating a sensitive and appropriate response to the behavioral manipulation. This adjustment reflects a nuanced perception of social cues and a capacity to modify judgments based on the behavior of interaction partners, potentially indicating a perceived alignment or support from the co-player that mitigates their heightened sensitivity to potential social rebuffs. High RS participants' lower ratings of essentially similar co-players as they continued to face them may indicate that the occasional pre-programmed defections of the AI agents failed to mitigate concerns over rejection and possibly exacerbated perceptions of uncooperativeness and unforgiveness, leading to a stronger preference against future interactions. 
+Individuals with low RS were less affected by AI behavioral variations, showing a less volatile baseline of social perception. They still exhibit behavior consistent with a contrast effect in the manipulation condition. This dichotomy highlights the potential of tailored interactions, mediated by advanced AI agents, to address and modulate specific social and psychological predispositions in human participants.
+
+<!-- Interestingly, for participants with low RS, the manipulation did not significantly alter their perceptions of the AI's cooperativeness, forgiveness, or their willingness to interact in the future. This group's ratings remained largely unchanged between the pre- and post-exposure phases, regardless of the AI's behavior. This stability suggests that individuals with lower sensitivity to rejection may base their ratings more on consistent behavioral patterns or other criteria not directly influenced by the forgiving nature of the AI agents. -->
+
+Importantly, our approach utilizing HMMs to simulate interactive partners in social dilemmas offers a promising avenue for future research, especially in understanding and potentially mitigating trust deficits in individuals with high rejection sensitivity. The nuanced behaviors elicited through the interaction with HMM agents highlight the complexity of trust dynamics and the potential for computational models to offer novel insights into human social behaviors.
+
+<!-- In conclusion, this study demonstrates the value of integrating HMM-based artificial agents in the study of trust and cooperation. By showcasing the potential of these agents to both simulate realistic human interactions and influence real human behavior, our research paves the way for future investigations into the mechanisms of trust repair and the broader implications of artificial agents in social psychology. -->
 
 
-## Other notable points:
+<!-- ## Other notable points: -->
 
-Those in the control group perceived the human-like HMM as less cooperative, forgiving and were less willing to face it after the first interaction. This might indicate either *satiation/hedonic adaptation* (the process by which a novel interaction becomes less enjoyable  after too much exposure), or a  *negativity bias* (humans pay more attention to and give more weight to negative rather than positive experiences. Over time, as we interact more with someone, we might start noticing more of their flaws or negative traits, which could lead to lower overall ratings or more negative judgements). This negative rating did not translate however into lower proportioanl returns in the post-exposure phase. 
-
-The study found that RSQ (Rejection Sensitivity Questionnaire) and LPFS (Levels of Personality Functioning Scale) scores were ineffective at distinguishing between high and low performers in the game. This gap highlights a need for further research, despite theoretical connections suggested in the literature review.
+<!-- The study found that RSQ (Rejection Sensitivity Questionnaire) and LPFS (Levels of Personality Functioning Scale) scores were ineffective at distinguishing between high and low performers in the game. This gap highlights a need for further research, despite theoretical connections suggested in the literature review. -->
 
 
 

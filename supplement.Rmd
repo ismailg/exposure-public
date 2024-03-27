@@ -1,0 +1,108 @@
+---
+title: "Can Exposure To Forgiving AI Foster Cooperative Play?"
+subtitle: "Supplementary Information"
+
+output:
+  bookdown::pdf_document2:
+   toc: false
+
+bibliography: "bib/exposure.bib"
+biblio-style: spphys
+
+header-includes:
+  - \renewcommand{\thefigure}{S\arabic{figure}}
+---
+
+```{r setupCoaxsupp, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE) 
+knitr::opts_chunk$set(out.width = "\\textwidth")
+library(papaja)
+library(kableExtra)
+library(knitr)
+
+# using some functions dplyr, ggpubr, PairedData and sjPlot. Need to be loaded. 
+library(tidyverse)
+library(afex)
+library(PairedData)
+library(multcompView)
+library(lsmeans)
+library(depmixS4)
+library(flextable)
+library(gridExtra)
+library(forcats)
+library(ggsignif)
+```
+
+# Repeated Trust Game 
+
+Participants played a 15-round repeated trust game [@joyce_trust_1995] in the trustee role against a computer-programmed investor. Each player was represented with an icon with the participant always on the left of the screen and the opponent on the right. The participants were able to choose the icon that represents them at the start of the experiment. The icon representing the opponent changed at the start of each new game, to simulate a new interaction partner. Participants were not told they were facing computerised opponents. We chose to simulate the behavior of a human interaction partner through allowing for a delay whilst pairing with new opponents as the start of each game as well as programming the agents to respond during each round after a random time lapse (randomly chosen between 5 and 10 seconds). 
+
+
+```{r trustGameScreenshot, include=F, fig.cap = "Screenshot of the repeated Trust Game. The game is played in dyads, with one player assigned the role of the investor and the other player that of the trustee. The investor is endowed with 20 units at the start of each round. They need to decide how much of that endowment they want to invest with the trustee. The investment is then multiplied by a factor of 3 and sent to the trustee. The trustee in turn needs to decide how much of the multiplied investment they want to send back to the investor. Shown here is the stage at which the trustee makes a decision of how much to send back the investor", out.width="70%", out.height="70%", fig.align='center'}
+
+knitr::include_graphics("figures/trust_game.png")
+
+```
+
+# Hidden markov Model used to simulate the Investor's actions
+
+The HMM assumes that the probability of each investment $I_t=0,…,20$, at each trial t, conditional on the current state of the investor $S_t$, is dependent on an underlying normal distribution with mean $\mu_s$ and standard deviation $\sigma_s$. The probability of each discrete investment was determined from the cumulative normal distribution $\Phi$, computing the probability of a Normal variate falling between the midway points of the response options. As responses were bounded at 0 and 20, we normalized these probabilities further by taking the endpoints into account. For instance, the probability of an investment $I_t=2$ is defined as: 
+
+$$P(I_t=2 | S_t=s)= \frac{\Phi(2.5 | \mu_s,\sigma_s ) - \Phi(1.5 | \mu_s,\sigma_s )} {\Phi(20.5 | \mu_s,\sigma_s ) - \Phi(-0.5 | \mu_s,\sigma_s )}$$
+
+Note that the denominator truncates the distribution between 0 and 20. To estimate the transition probability between states for the investor, a multinomial logistic regression model was fitted to the investor's data such as: 
+
+$$P(S_{t+1} = s' | S_t=s , X_t = x)= \frac{\exp(\beta_{0,s,s'} + \beta_{1,s,s'} x)}{\sum_{s''} \exp(\beta_{0,s,s''} + \beta_{1,s,s''} x)}$$ 
+
+where $X_t=R_t-I_t$ is the net return to the investor with  $R_t$ the amount returned by the trustee and $I_t$ is the Investment sent.
+
+The advantages of this approach is that it does not require any a priori assumptions about the model features. The number of states, the policy conditional on the state, and the transition function between states can all determined in a purely data-driven way. These HMMs can in turn be used to simulate a human-like agent playing the trust game. This agent may transition to a new state depending on the other player's actions and adopt a policy reflecting its state, thus simulating changes in emotional dispositions of human players during a repeated game. When the investor gains from the interaction, they become more likely to transition to a state where their policy is more "trusting" with generally higher investments. However, faced with losses, the investor is more likely to transition to a more cautious policy with generally lower investments. The policies and the transitions between states are sufficient to build an agent that reflects this type of adaptive behavior and reacts to the trustee's action choices in a way that mimics a human player.
+
+We estimated a three-state model for investor's behaviour, using maximum likelihood estimation via the Expectation-Maximisation algorithm as implemented in the depmixS4 (Visser & Speekenbrink) package for R. The model was estimated using investments from existing datasets of human dyads playing 10 rounds of the RTG with the same trustee. The dataset consisted of a total of 381 games from two data sources: First, a total of 93 repeated trust games with healthy investors and a mix of healthy trustees and trustees diagnosed with Borderline Personality Disorder (BPD) [@king-casas_rupture_2008]. The second source was from data collected as part of a project investigating social exchanges at the Montague lab at Virginia Tech and consists of 288 games.
+
+
+## Mixed-effects model results for participant returns
+
+We fit a linear mixed effects model to participant returns as a proportion of the multiplied investment received. The results of the model are presented in attached table. 
+
+
+
+```{r, include=F}
+
+
+# Create a summary object
+model_summary <- readRDS("data/mod_returns_pct_RS.RDS")
+
+
+# Extract the fixed effects as a data frame
+mod_df <- as.data.frame(model_summary$coefficients)
+
+
+mod_df <- mod_df %>%
+  rownames_to_column(var = "Term") %>% 
+  mutate(Term = gsub("condition.f1", "Condition", Term),
+         Term = gsub("phase.f1", "Phase", Term),
+         Term = gsub("high_RS1", "high_RS", Term),
+         Term = gsub("inv_scaled", "Investment", Term))
+
+# Create a summary table using apa_table
+summary_table <- papaja::apa_table(
+  mod_df,
+  caption = "Summary of Mixed-Effects Model of participant returns over all rounds",
+  align = c("l", "c", "c", "c", "c", "c")
+)
+
+
+```
+
+
+```{r myTable, results='asis'}
+summary_table
+```
+
+
+
+
+\pagebreak
+
+# References 
