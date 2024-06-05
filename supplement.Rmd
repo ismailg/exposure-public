@@ -63,8 +63,31 @@ We estimated a three-state model for investor's behaviour, using maximum likelih
 
 ## Mixed-effects model results for participant returns
 
-We fit a linear mixed effects model to participant returns as a proportion of the multiplied investment received. The results of the model are presented in attached table. 
+We fit a linear mixed effects model to participant returns as a proportion of the multiplied investment received as described below. The results of the model are presented in Table \ref{tab:myTable} 
 
+\[
+\begin{split}
+\text{R}_{ij} = & \, \beta_0 + \beta_1 \text{ Phase}_i + \beta_2 \text{ Condition}_i + \beta_3 \text{ Investment}_i + \beta_4 \text{ RS}_i + \\
+& \beta_5 (\text{Phase} \times \text{Condition})_i + \beta_6 (\text{Phase} \times \text{Investment})_i + \beta_7 (\text{Phase} \times \text{RS})_i + \\
+& \beta_8 (\text{Condition} \times \text{Investment})_i + \beta_9 (\text{Condition} \times \text{RS})_i + \beta_{10} (\text{Investment} \times \text{RS})_i + \\
+& \beta_{11} (\text{Phase} \times \text{Condition} \times \text{Investment})_i + \beta_{12} (\text{Phase} \times \text{Condition} \times \text{RS})_i + \\
+& \beta_{13} (\text{Phase} \times \text{Investment} \times \text{RS})_i + \beta_{14} (\text{Condition} \times \text{Investment} \times \text{RS})_i + \\
+& \beta_{15} (\text{Phase} \times \text{Condition} \times \text{Investment} \times \text{RS})_i + \\
+& b_{0j} + b_{1j} \text{ (Phase)}_i+ \epsilon_{ij}
+\end{split}
+\]
+
+where:
+
+- \( \text{R}_{ij} \): percentage of tripled investment returned to investor for participant \( j \) in observation \( i \)
+- \( \beta_0 \): intercept
+- \( \beta_1 \) to \( \beta_4 \): main effects of Phase (RTG game pre vs. post-manipulation), Condition (manipulation vs. control), Investment, and RS (High vs Low RS), respectively
+- \( \beta_5 \) to \( \beta_{10} \): interaction effects between each pair of the four factors, showing how the relationship between one factor and the return percentage not available changes depending on the level of another factor
+- \( \beta_{11} \) to \( \beta_{14} \): three-way interaction effects among the four factors, indicating how the interaction between two factors is further modified by the third factor
+- \( \beta_{15} \): four-way interaction effect between Phase, Condition, Investment, and RS, describing how the interaction among three factors is modified by the fourth factor
+- \( b_{0j} \): player-wise random intercept for player \( j \)
+- \( b_{1j} \): player-wise random slope for Phase for player \( j \)
+- \( \epsilon_{ij} \): error term for player \( j \) in observation \( i \)
 
 
 ```{r, include=F}

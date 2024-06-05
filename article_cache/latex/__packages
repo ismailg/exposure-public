@@ -36,3 +36,5 @@ ggpubr
 magick
 patchwork
 sjstats
+lubridate
+lmerTest
