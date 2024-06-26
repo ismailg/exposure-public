@@ -134,12 +134,10 @@ RS_data <- df_screening %>%  mutate(high_RS = factor(ifelse(RS_score > 15, 1, 0)
                                     labels = c("low RS", "high RS")))  %>% 
                              dplyr::select(id, MH.f, RS_score, high_RS)
 
-# Find IDs for those who participated in experiment and add RS_score and high_RS as new columsn to d_finished.
+# Find IDs for those who participated in experiment and add RS_score and high_RS as new columns to d_finished.
 # Merging d_finished with relevant columns from RS_data based on matching ids
 d_finished <- d_finished %>%
   inner_join(RS_data %>% dplyr::select(id, RS_score, high_RS), by = "id")
-
-save(d_finished, file = "data/d_finished.RData")
 
 
 # Summarize to count the number of participants for each Condition within each high_RS level
@@ -150,6 +148,28 @@ temp <- d_finished %>% dplyr::select(id, condition.f, high_RS) %>%
 
 # View the summarized counts
 print(temp)
+
+###################### Extract latent Investor State in each round ####################
+
+# Select the desired columns
+d_selected <- d_finished %>%
+  dplyr::select(roundNum, gameNumber, playerId, starts_with("State_"))
+
+# Reshape the data
+d_reshaped <- d_selected %>%
+  pivot_longer(cols = starts_with("State_"), 
+               names_to = "State_name", 
+               values_to = "investorState") %>%
+  mutate(roundNum = as.numeric(str_extract(State_name, "(?<=r)\\d+")),
+         gameNumber = as.numeric(str_extract(State_name, "(?<=game_)\\d+"))) %>%
+  dplyr::select(playerId, gameNumber, roundNum, investorState) %>%
+  arrange(playerId, gameNumber, roundNum) %>%
+  filter(!is.na(investorState)) %>% unique()
+
+# Join the reshaped data back to the original dataset
+d_finished <- d_finished %>%
+  dplyr::select(-investorState) %>% 
+  left_join(d_reshaped, by = c("playerId", "gameNumber", "roundNum"))
 ```
 
 ## Participants 
@@ -411,7 +431,8 @@ The model was estimated using the `afex` package [@singmann_afex_2022] in R. Mor
 d_finished <- d_finished  %>% mutate( gameNum.f = factor(gameNumber,labels = c("pre", "expo1", "expo2", "expo3","post"),
                                       levels=c("1", "11", "12", "13", "2")),
                                       phase.f = factor(ifelse(gameNumber %in% c("1", "2"), 
-                                                       ifelse(gameNumber == "1", "pre", "post"), NA), levels = c("pre", "post"))) %>% 
+                                                       ifelse(gameNumber == "1", "pre", "post"), NA), levels = c("pre", "post")),
+                                      investorState.f = factor(investorState, labels= c("unhappy", "neutral", "happy"), levels =c("unhappy", "neutral", "happy"))) %>% 
                               rename(# Before Exposure
                             rating_cooperative_1 = `ratePLayer_trustGame_1.How cooperative do you think the other player is?`,
                             rating_forgiving_1 = `ratePLayer_trustGame_1.How forgiving do you think the other player is?`,
@@ -435,6 +456,8 @@ d_finished <- d_finished  %>% mutate( gameNum.f = factor(gameNumber,labels = c("
                             
 
                             )
+
+
 ```
 
 
@@ -500,6 +523,7 @@ d_finished <- d_finished %>%
     LPFS_self_score = rowMeans(dplyr::select(., all_of(lpfs_1_to_6_cols)), na.rm = TRUE),
     LPFS_other_score = rowMeans(dplyr::select(., all_of(lpfs_7_to_12_cols)), na.rm = TRUE)
   )
+save(d_finished, file = "data/d_finished.RData")
 
   
 ```
@@ -661,7 +685,7 @@ summary_df <- df_long_ratings %>%
 # Filter only trust rounds and create % returns and investments 
 
 avg_ret_df <- d_finished %>%
-  dplyr::select(playerId,roundType,investment,returns,roundNum,gameNum.f,condition.f, phase.f, high_RS, LPFS_score, RS_score) %>% 
+  dplyr::select(playerId,roundType,investment,returns,roundNum,gameNum.f,condition.f, phase.f, high_RS, LPFS_score, RS_score, investorState.f) %>% 
   filter(roundType=="trust",!is.na(roundNum)) %>% 
   mutate(roundNum = as.numeric(as.character(roundNum))) %>%
   mutate(inv_scaled = as.vector(scale(investment))) %>% 
@@ -765,9 +789,9 @@ ggplot(avg_ret_df %>% filter(gameNum.f %in% c("expo1","expo2","expo3")),aes(x=ro
 
 
 ```{r modAllReturns, include=FALSE, cache=TRUE}
-
+##############  Filter only pre and post games
 prepost_df <- avg_ret_df %>% filter(gameNum.f %in% c("pre","post"))
-
+##############
 mod_returns_pct_RS <- mixed( ret_pct_na ~ phase.f*condition.f*inv_scaled*high_RS + (1 + phase.f| playerId), prepost_df, REML= TRUE, method="KR")
 
 summary(mod_returns_pct_RS)
@@ -783,10 +807,7 @@ saveRDS(summary(mod_returns_pct_RS), "data/mod_returns_pct_RS.RDS")
 contrasts(prepost_df$phase.f)
 contrasts(prepost_df$condition.f)
 contrasts(prepost_df$high_RS)
-
-```
-```{r}
-#RS_model <- lm( RS_score ~ ret_pct_na*inv_scaled + (1 + phase.f| playerId), prepost_df, REML= TRUE, method="KR")
+contrasts(prepost_df$investorState.f)
 ```
 
 
@@ -801,7 +822,7 @@ prepost_bycond
 library(emmeans)
 
 # Compute EMMs for the interaction of interest
-emms <- emmeans(mod_returns_pct_RS, ~ phase.f * condition.f | high_RS, pbkrtest.limit = 6300)
+emms <- emmeans(mod_returns_pct_RS, ~ phase.f * condition.f | high_RS, pbkrtest.limit = 6300, adjust="tukey")
 
 contrasts <- contrast(emms, "pairwise", by = c("condition.f", "high_RS"))
 summary(contrasts)
@@ -817,6 +838,116 @@ results_df <- as.data.frame(summary(contrasts))
 library(sjstats)
 effectsize::eta_squared(mod_returns_pct_RS)
 ```
+
+
+
+<!---------------- TRYING A MODEL WITH LATENT HMM STATE AS COVARIATE INSTEAD OF INVESTMENT  ------------------->
+
+
+```{r}
+mod_returns_latent <- mixed( ret_pct_na ~ phase.f*condition.f*investorState.f*high_RS + (1 + phase.f| playerId), prepost_df, REML= TRUE, method="KR")
+
+summary(mod_returns_latent)
+```
+
+```{r, include= F}
+# Load necessary packages
+library(lme4)
+library(emmeans)
+library(ggplot2)
+library(dplyr)
+
+# Assuming `mod_returns_latent` is your fitted model and `prepost_df` is your data frame
+# Calculate estimated marginal means
+emm <- emmeans(mod_returns_latent, ~ high_RS*condition.f*phase.f   | investorState.f, adjust = "tukey")
+
+# Calculate pairwise comparisons
+contrast_results <- contrast(emm, method = "pairwise")
+
+# Extract significant contrasts
+significant_contrasts <- summary(contrast_results, infer = c(TRUE, TRUE))
+
+# Convert emmeans object to data frame for plotting
+emm_df <- as.data.frame(emm)
+
+# Plot the marginal means using ggplot2
+p <- ggplot(emm_df, aes(x = investorState.f, y = emmean, color = high_RS, group = high_RS)) +
+  geom_point(position = position_dodge(width = 0.5), size = 3) +
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.2, position = position_dodge(width = 0.5)) +
+  geom_line(position = position_dodge(width = 0.5), aes(linetype = high_RS)) +
+  labs(title = "Marginal Means of Returns by Investor State and RS Group",
+       x = "Investor State",
+       y = "Estimated Marginal Mean of Returns") +
+  theme_minimal() +
+  scale_color_manual(name = "RS Group", values = c("low RS" = "blue", "high RS" = "red"))
+
+# Add significance annotations
+for(i in 1:nrow(significant_contrasts)) {
+  row <- significant_contrasts[i, ]
+  if(row$p.value < 0.05) {
+    p <- p + annotate("text", 
+                      label = "*", 
+                      x = which(levels(emm_df$investorState.f) == row$investorState.f),
+                      y = max(emm_df$emmean) + 0.05 * i,
+                      color = "black", 
+                      size = 5, 
+                      vjust = -0.5)
+  }
+}
+
+# Print the plot
+print(p)
+
+```
+```{r}
+# Load necessary packages
+library(lme4)
+library(emmeans)
+library(ggplot2)
+library(dplyr)
+library(ggsignif)
+
+# Assuming `mod_returns_latent` is your fitted model and `prepost_df` is your data frame
+# Calculate estimated marginal means
+emm <- emmeans(mod_returns_latent, ~  high_RS | investorState.f  )
+
+# Calculate pairwise comparisons
+contrast_results <- pairs(emm)
+
+print(contrast_results)
+
+# Convert emmeans object to data frame for plotting
+emm_df <- as.data.frame(emm)
+
+# Convert contrast results to data frame for annotation
+contrast_df <- as.data.frame(contrast_results)
+significant_contrasts <- contrast_df %>%
+  filter(p.value < 0.05) %>%
+  mutate(significance = ifelse(p.value < 0.001, "***", ifelse(p.value < 0.01, "**", "*")))
+
+print(significant_contrasts)
+
+# Plot the marginal means using ggplot2
+p <- ggplot(emm_df, aes(x = investorState.f, y = emmean, color = high_RS, group = high_RS)) +
+  geom_point(position = position_dodge(width = 0.8), size = 3) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), width = 0.2, position = position_dodge(width = 0.8)) +
+  geom_line(position = position_dodge(width = 0.8), aes(linetype = high_RS)) +
+  labs(title = "Marginal Means of Returns by Investor State and RS Group",
+       x = "Investor State",
+       y = "Estimated Marginal Mean of Returns") +
+  theme_minimal() +
+  scale_color_manual(name = "RS Group", values = c("low RS" = "blue", "high RS" = "red")) +
+  theme(plot.title = element_text(size = 16), legend.position = "bottom")
+
+
+# Print the plot
+print(p)
+
+
+
+
+```
+
 
 
 
@@ -947,7 +1078,8 @@ library(ggsignif)
 ret_all <- afex_plot(mod_returns_pct_RS, x = "condition.f", trace = "phase.f", dodge = 0.8, error = "within",
                      mapping = c("linetype", "shape", "fill"),
                      factor_levels = list(condition.f = c("Control", "Manipulation")),
-                     legend_title = "Phase")
+                     legend_title = "Phase",
+                     emmeans_arg = list(p.adjust.method = "tukey"))
 
 # Extract the data used in afex_plot
 plot_data <- ret_all$data
@@ -1360,16 +1492,8 @@ library(tidyverse)
 
 # Convert dataset from wide to long format, focusing on columns that start with "State_"
 d_long <- d_finished %>%
-  gather(key = "state_col", value = "investorState", starts_with("State_")) %>%
-  mutate(
-    round_extracted = as.numeric(str_extract(state_col, "(?<=State_r)\\d+")),
-    game_extracted = as.numeric(str_extract(state_col, "(?<=game_)\\d+"))
-  ) %>%
-  # Filter to keep rows where extracted round/game numbers match the actual round/game numbers
-  filter(round_extracted == roundNum, game_extracted == gameNumber) %>%
-  # Select and rename the desired columns
-  dplyr::select(id, condition.f, gameNum.f, gameNumber, roundNum, investorState)
-
+  dplyr::select(id, condition.f, gameNum.f, gameNumber, roundNum, investorState.f) %>% 
+  drop_na()
 # View the resulting dataset
 print(d_long)
 
@@ -1380,7 +1504,7 @@ library(ggplot2)
 library(dplyr)
 
 # Filter for only games 1 and 2
-filtered_data <- d_long %>%
+filtered_prepost <- d_long %>%
   filter(gameNum.f %in% c("pre", "post"))
 
 # Define the colors for the levels of investorState
@@ -1388,24 +1512,40 @@ filtered_data <- d_long %>%
 state_colors <- c("happy" = "Blue", "neutral" = "#77DD77", "unhappy" = "#FF6961")
 
 # Create the histogram with stacked bars and specified colors
-ggplot(filtered_data, aes(x = as.factor(roundNum), fill = as.factor(investorState))) +
-  geom_bar(aes(group = investorState), position = position_stack(reverse = FALSE), stat = "count") +
+ggplot(filtered_prepost, aes(x = as.factor(roundNum), fill = investorState.f)) +
+  geom_bar(aes(group = investorState.f), position = position_stack(reverse = FALSE), stat = "count") +
+  scale_fill_manual(values = state_colors) +
+  facet_wrap(~condition.f*gameNum.f, scales = "free_x", labeller = label_both) +
+  labs(x = "Round", fill = "Investor State", title = "Histogram of Latent HMM Investor States per Game and Round") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+```
+```{r}
+# Filter for expo games only
+filtered_expo <- d_long %>%
+  filter(gameNum.f %in% c("expo1", "expo2", "expo3"))
+
+# Create the histogram with stacked bars and specified colors
+ggplot(filtered_expo, aes(x = as.factor(roundNum), fill = investorState.f)) +
+  geom_bar(aes(group = investorState.f), position = position_stack(reverse = FALSE), stat = "count") +
   scale_fill_manual(values = state_colors) +
   facet_wrap(~condition.f*gameNum.f, scales = "free_x", labeller = label_both) +
   labs(x = "Round", fill = "Investor State", title = "Histogram of Latent States per Game and Round") +
   theme_bw() +
   theme(legend.position = "bottom")
-
 ```
 
+<!------------------------ AVERAGING LATENT STATE COUNT ACROSS TRIALS ----------------------------->
+
 ```{r}
-counts <- filtered_data %>%
-  group_by(condition.f, gameNum.f, investorState,id) %>%
+counts <- filtered_prepost %>%
+  group_by(condition.f, gameNum.f, investorState.f,id) %>%
   summarise(count = n()) %>%
     summarise(count = sum(count))
   
 # Calculate the average count per state per condition
-total_rounds <- filtered_data  %>%
+total_rounds <- filtered_prepost  %>%
   group_by(condition.f, gameNum.f) %>%
   summarise(total_rounds = n()) 
 
@@ -1413,7 +1553,7 @@ state_summary  <- counts %>%
   left_join(total_rounds, by = c("condition.f", "gameNum.f")) %>% 
   mutate(state_percentage = count/total_rounds)
 
-ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = as.factor(investorState))) +
+ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = investorState.f)) +
   geom_bar(stat = "identity") +
   facet_wrap(~condition.f) +
   labs(x = "Condition", y = "Proportion", fill = "Investor State") +
@@ -1423,14 +1563,17 @@ ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = as.factor
 state_colors <- c("happy" = "Blue", "neutral" = "#77DD77", "unhappy" = "#FF6961")
 
 # Create the histogram with stacked bars and specified colors
-ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = as.factor(investorState))) +
-  geom_bar(aes(group = investorState), position = position_stack(reverse = FALSE), stat = "identity") +
+ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = investorState.f)) +
+  geom_bar(aes(group = investorState.f), position = position_stack(reverse = FALSE), stat = "identity") +
   scale_fill_manual(values = state_colors) +
   facet_wrap(~condition.f*gameNum.f, scales = "free_x", labeller = label_both) +
   labs(x = "Round", fill = "Investor State", title = "Histogram of Latent States per Game and Round") +
   theme_bw() +
   theme(legend.position = "bottom")
 ```
+
+
+
 
 
 

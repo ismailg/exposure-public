@@ -1,0 +1,597 @@
+---
+title: "exploratory"
+author: "Ismail Guennouni"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+Here we fit an HMM to all trustee data in the exposure experiment, both pre/post and control/manipulation. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(afex)
+library(PairedData)
+library(multcompView)
+library(lsmeans)
+library(depmixS4)
+library(flextable)
+library(grid)
+library(gridExtra)
+library(forcats)
+library(ggsignif)
+library(magick)
+library(doParallel)
+
+```
+
+## Exploratory analyses to model individual games
+
+```{r}
+load("data/d_finished.RData")
+
+data_HMM <- d_finished %>%
+  dplyr::select(playerId,roundType,investment,returns,roundNum,gameNum.f,condition.f, phase.f, high_RS, LPFS_score, RS_score) %>% 
+  filter(roundType=="trust",!is.na(roundNum),gameNum.f %in% c("pre","post")) %>% 
+  mutate(roundNum = as.numeric(as.character(roundNum))) %>%
+  mutate(inv_scaled = as.vector(scale(investment))) %>% 
+  mutate(next_investment = lead(investment, default=0)) %>%
+  mutate(inv_pct = investment/20, ret_pct_0 = ifelse(investment==0,0,returns/(3*investment)),ret_pct_na = ifelse(investment==0,NA,returns/(3*investment)))
+```
+
+```{r}
+
+# Define a response class representing Gaussian distributions with discrete support
+setClass("discgaus", contains="response", slots=c(breaks="numeric"))
+
+# Define a generic function for creating instances of the discgaus class
+setGeneric("discgaus", function(y, pstart = NULL, fixed = NULL, ...) standardGeneric("discgaus"))
+
+# Define a method for creating instances of the discgaus class
+setMethod("discgaus", 
+          signature(y="ANY"), 
+          function(y, pstart=NULL, fixed=NULL, breaks = c(-Inf, seq(0, 19) + .5, Inf), ...) {
+            # Convert y to a matrix
+            y <- matrix(y, length(y))
+            # Create x matrix
+            x <- matrix(1)
+            # Initialize parameters list
+            parameters <- list()
+            # Number of parameters
+            npar <- 2
+            # Check if fixed parameters are provided, else initialize as FALSE
+            if(is.null(fixed)) fixed <- as.logical(rep(0, npar))
+            # Check if initial parameters are provided, else initialize default values
+            if(!is.null(pstart)) {
+              if(length(pstart) != npar) stop("length of 'pstart' must be ", npar)
+              parameters$mu <- pstart[1]
+              parameters$sigma <- pstart[2]
+            } else {
+              parameters <- list(mu = 10, sigma = 3)
+            }
+            # Create a new object of class discgaus
+            mod <- new("discgaus", parameters=parameters, fixed=fixed, x=x, y=y, npar=npar, breaks=breaks)
+            mod
+          }
+)
+
+# Define method for displaying parameters of discgaus class
+setMethod("show", "discgaus",
+          function(object) {
+            cat("Gaussian with discrete support\n")
+            cat("Parameters: \n")
+            cat("mu: ", object@parameters$mu, "\n")
+            cat("sigma: ", object@parameters$sigma, "\n")
+          }
+)
+
+# Define method for computing density of discgaus class
+setMethod("dens", "discgaus",
+          function(object, log=FALSE) {
+            p <- pnorm(object@breaks[-1], mean = object@parameters$mu, sd = object@parameters$sigma) - 
+                 pnorm(object@breaks[-length(object@breaks)], mean = object@parameters$mu, sd = object@parameters$sigma)
+            if(log) return(log(p[as.numeric(cut(object@y, breaks=object@breaks))])) 
+            else return(p[as.numeric(cut(object@y, breaks=object@breaks))])
+          }
+)
+
+# Define method for setting parameters of discgaus class
+setMethod("setpars", "discgaus",
+          function(object, values, which="pars", ...) {
+            npar <- npar(object)
+            if(length(values) != npar) stop("length of 'values' must be", npar)
+            nms <- names(object@parameters)
+            switch(which,
+                   "pars"= {
+                     object@parameters$mu <- values[1]
+                     object@parameters$sigma <- values[2]
+                   },
+                   "fixed" = {
+                     object@fixed <- as.logical(values)
+                   }
+            )
+            names(object@parameters) <- nms
+            return(object)
+          }
+)
+
+# Define method for getting parameters of discgaus class
+setMethod("getpars", "discgaus",
+          function(object, which="pars", ...) {
+            switch(which,
+                   "pars" = {
+                     parameters <- numeric()
+                     parameters <- unlist(object@parameters)
+                     pars <- parameters
+                   },
+                   "fixed" = {
+                     pars <- object@fixed
+                   }
+            )
+            return(pars)
+          }
+)
+
+# Define method for fitting discgaus class
+setMethod("fit", "discgaus",
+          function(object, w) {
+            if(missing(w)) w <- NULL
+            if(!is.null(w)) {
+              negLL <- function(pars) {
+                object <- setpars(object, c(pars[1], exp(pars[2])))
+                -sum(w*log(dens(object)))
+              }
+            } else {
+              negLL <- function(pars) {
+                object <- setpars(object, c(pars[1], exp(pars[2])))
+                -sum(log(dens(object)))
+              }
+            }
+            pars <- optim(c(object@parameters$mu, log(object@parameters$sigma)), fn=negLL)$par
+            object <- setpars(object, c(pars[1], exp(pars[2])))
+            object
+          }
+)
+
+# Define a response class representing truncated Gaussian distributions with discrete support
+setClass("truncdiscgaus", contains="discgaus", slots=c(min="numeric", max="numeric"))
+
+# Define method for computing density of truncdiscgaus class
+setMethod("dens", "truncdiscgaus",
+          function(object, log=FALSE) {
+            breaks <- c(object@min, object@breaks[object@breaks > object@min & object@breaks < object@max], object@max)
+            prec <- pnorm(object@max, mean = object@parameters$mu, sd = object@parameters$sigma) - 
+                    pnorm(object@min, mean = object@parameters$mu, sd = object@parameters$sigma)
+            if(is.na(prec) || prec < 1e-12) {
+              p <- rep(1/(length(breaks)-1), length(object@y))
+              if(log) return(log(p)) else return(p)
+            } else {
+              p <- pnorm(breaks[-1], mean = object@parameters$mu, sd = object@parameters$sigma) - 
+                   pnorm(breaks[-length(breaks)], mean = object@parameters$mu, sd = object@parameters$sigma)
+              p <- p/sum(p)
+              if(log) return(log(p[as.numeric(cut(object@y, breaks=object@breaks))])) 
+              else return(p[as.numeric(cut(object@y, breaks=object@breaks))])
+            }
+          }
+)
+
+# Define a generic function for creating instances of the truncdiscgaus class
+setGeneric("truncdiscgaus", function(y, pstart = NULL, fixed = NULL, ...) standardGeneric("truncdiscgaus"))
+
+# Define a method for creating instances of the truncdiscgaus class
+setMethod("truncdiscgaus", 
+          signature(y="ANY"), 
+          function(y, pstart=NULL, fixed=NULL, breaks = c(-Inf, seq(0, 19) + .5, Inf), min=-0.5, max=20.5, ...) {
+            y <- matrix(y, length(y))
+            x <- matrix(1)
+            parameters <- list()
+            npar <- 2
+            if(is.null(fixed)) fixed <- as.logical(rep(0, npar))
+            if(!is.null(pstart)) {
+              if(length(pstart) != npar) stop("length of 'pstart' must be ", npar)
+              parameters$mu <- pstart[1]
+              parameters$sigma <- pstart[2]
+            }
+            mod <- new("truncdiscgaus", parameters=parameters, fixed=fixed, x=x, y=y, npar=npar, breaks=breaks, min=min, max=max)
+            mod
+          }
+)
+
+# Define a response class representing Gaussian distributions with variable discrete support
+setClass("vtdgaus", contains="response", slots=c(yield="numeric"))
+
+# Define a generic function for creating instances of the vtdgaus class
+setGeneric("vtdgaus", function(y, pstart = NULL, fixed = NULL, ...) standardGeneric("vtdgaus"))
+
+# Define a method for creating instances of the vtdgaus class
+setMethod("vtdgaus", 
+          signature(y="ANY"), 
+          function(y, yield, pstart=NULL, fixed=NULL, ...) {
+            y <- matrix(y, length(y))
+            x <- matrix(1)
+            parameters <- list()
+            npar <- 2
+            if(is.null(fixed)) fixed <- as.logical(rep(0, npar))
+            if(!is.null(pstart)) {
+              if(length(pstart) != npar) stop("length of 'pstart' must be ", npar)
+              parameters$mu <- pstart[1]
+              parameters$sigma <- pstart[2]
+            } else {
+              parameters <- list(mu=.5, sigma=1)
+            }
+            mod <- new("vtdgaus", parameters=parameters, fixed=fixed, x=x, y=y, npar=npar, yield=yield)
+            mod
+          }
+)
+
+# Define method for displaying parameters of vtdgaus class
+setMethod("show", "vtdgaus",
+          function(object) {
+            cat("Gaussian with variable discrete support for percentage responses\n")
+            cat("Parameters: \n")
+            cat("mu: ", object@parameters$mu, "\n")
+            cat("sigma: ", object@parameters$sigma, "\n")
+          }
+)
+
+# Define method for computing density of vtdgaus class
+setMethod("dens", "vtdgaus",
+          function(object, log=FALSE) {
+            prec <- pnorm(1 + .5*(1/60), mean = object@parameters$mu, sd = object@parameters$sigma) - 
+                    pnorm(0 - .5*(1/60), mean = object@parameters$mu, sd = object@parameters$sigma)
+            if(prec < 1e-12) {
+              p <- 1/(object@yield + 1)
+            } else {
+              p <- pnorm(object@y + .5*(1/object@yield), mean = object@parameters$mu, sd = object@parameters$sigma) - 
+                   pnorm(object@y - .5*(1/object@yield), mean = object@parameters$mu, sd = object@parameters$sigma)
+              norm <- pnorm(1 + .5*(1/object@yield), mean = object@parameters$mu, sd = object@parameters$sigma) - 
+                      pnorm(0 - .5*(1/object@yield), mean = object@parameters$mu, sd = object@parameters$sigma)
+              p <- p/norm
+            }
+            p[object@yield == 0] <- 1
+            if(log) return(log(p)) else return(p)
+          }
+)
+
+# Define method for setting parameters of vtdgaus class
+setMethod("setpars", "vtdgaus",
+          function(object, values, which="pars", ...) {
+            npar <- npar(object)
+            if(length(values) != npar) stop("length of 'values' must be", npar)
+            nms <- names(object@parameters)
+            switch(which,
+                   "pars"= {
+                     object@parameters$mu <- values[1]
+                     object@parameters$sigma <- values[2]
+                   },
+                   "fixed" = {
+                     object@fixed <- as.logical(values)
+                   }
+            )
+            names(object@parameters) <- nms
+            return(object)
+          }
+)
+
+# Define method for getting parameters of vtdgaus class
+setMethod("getpars", "vtdgaus",
+          function(object, which="pars", ...) {
+            switch(which,
+                   "pars" = {
+                     parameters <- numeric()
+                     parameters <- unlist(object@parameters)
+                     pars <- parameters
+                   },
+                   "fixed" = {
+                     pars <- object@fixed
+                   }
+            )
+            return(pars)
+          }
+)
+
+# Define method for fitting vtdgaus class
+setMethod("fit", "vtdgaus",
+          function(object, w) {
+            if(missing(w)) w <- NULL
+            if(!is.null(w)) {
+              negLL <- function(pars) {
+                object <- setpars(object, c(pars[1], exp(pars[2])))
+                -sum(w*log(dens(object)))
+              }
+            } else {
+              negLL <- function(pars) {
+                object <- setpars(object, c(pars[1], exp(pars[2])))
+                -sum(log(dens(object)))
+              }
+            }
+            pars <- optim(c(object@parameters$mu, log(object@parameters$sigma)), fn=negLL)$par
+            object <- setpars(object, c(pars[1], exp(pars[2])))
+            object
+          }
+)
+
+# Function for reordering states in an HMM based on labels
+label_switch <- function(mod, labels) {
+  if(!is(mod, "depmix") || !is(mod, "depmix.fitted")) stop("this function is for depmix models")
+  n_states <- mod@nstates
+  if(length(labels) != n_states || length(unique(labels)) != n_states || !(all(labels) %in% 1:n_states)) {
+    stop("labels needs to be a vector of unique integers between 1 and", n_states)
+  }
+  inv_labels <- sapply(1:n_states, function(x) which(labels == x))
+  tmp <- mod
+  # Relabel prior
+  ppars <- getpars(mod@prior)
+  fpars <- getpars(mod@prior, which="fixed")
+  out_pars <- as.numeric(t(matrix(ppars, nrow=length(ppars)/n_states, byrow=TRUE)[, inv_labels]))
+  out_fixed <- as.logical(t(matrix(fpars, nrow=length(fpars)/n_states, byrow=TRUE)[, inv_labels]))
+  if(!tmp@prior@family$link == "identity") tmp@prior@family$base <- labels[tmp@prior@family$base]
+  # Relabel transition
+  for(i in 1:n_states) {
+    ppars <- getpars(mod@transition[[inv_labels[i]]])
+    fpars <- getpars(mod@transition[[inv_labels[i]]], which="fixed")
+    out_pars <- c(out_pars, as.numeric(t(matrix(ppars, nrow=length(ppars)/n_states, byrow=TRUE)[, inv_labels])))
+    out_fixed <- c(out_fixed, as.logical(t(matrix(fpars, nrow=length(fpars)/n_states, byrow=TRUE)[, inv_labels])))
+    tmp@transition[[i]] <- mod@transition[[inv_labels[i]]]
+    if(!tmp@transition[[i]]@family$link == "identity") tmp@transition[[i]]@family$base <- labels[tmp@transition[[i]]@family$base]
+  }
+  # Relabel response
+  for(i in 1:n_states) {
+    out_pars <- c(out_pars, unlist(lapply(mod@response[[inv_labels[i]]], getpars)))
+    out_fixed <- c(out_fixed, unlist(lapply(mod@response[[inv_labels[i]]], getpars, which="fixed")))
+  }
+  tmp <- setpars(tmp, out_fixed, which="fixed")
+  tmp <- setpars(tmp, out_pars)
+  if(is(tmp, "depmix.fitted")) tmp@posterior <- viterbi(tmp)
+  return(tmp)
+}
+
+# Function for ordering states in a truncated discretised Gaussian model
+order_mod_truncdiscgaus <- function(mod) {
+  ns <- nstates(mod)
+  sum <- rep(0.0, ns)
+  for(i in 1:ns) {
+    # Calculate expected return in each state
+    tpars <- getpars(mod@response[[i]][[1]])
+    dmod <- truncdiscgaus(seq(0, 20), pstart=tpars, min=-0.5, max=20.5)
+    sum[i] <- sum(seq(0, 20) * dens(dmod))
+  }
+  cat("Expected values for states: ", sum, "\n")
+  # Reorder the states
+  mod <- label_switch(mod, rank(sum, ties.method="first"))
+  return(mod)
+}
+
+# Function for ordering states in a variable response truncated discretised Gaussian model
+order_mod_vtdgaus <- function(mod) {
+  ns <- nstates(mod)
+  sum <- rep(0.0, ns)
+  for(i in 1:ns) {
+    # Calculate expected return in each state
+    tpars <- getpars(mod@response[[i]][[1]])
+    dmod <- vtdgaus(seq(0, 1, length=61), pstart=tpars, yield=rep(60, 61))
+    sum[i] <- sum(seq(0, 1, length=61) * dens(dmod))
+  }
+  # Reorder the states
+  mod <- label_switch(mod, rank(sum, ties.method="first"))
+  return(mod)
+}
+
+
+```
+
+```{r}
+
+#| label: setup-parallel-3
+
+# Set up the parallel backend
+num_cores <- 8
+#create the cluster
+my.cluster <- parallel::makeCluster(
+  num_cores,
+  type = "FORK"
+  )
+
+#register it to be used by %dopar%
+doParallel::registerDoParallel(cl = my.cluster)
+```
+
+```{r}
+#| label: fit-HMM-trustee-models
+#| cache: true
+
+# Depmix simple Models 
+priordat <- data_HMM |>
+  filter(roundNum==1)
+
+tr_fdmod <- list()
+
+max_ns <- 10
+
+
+set.seed(20240513)
+my_seeds <- sample(1000:50000, max_ns)
+
+
+# Fitting HMM models to data 
+tr_fdmod <- foreach(state = 2:max_ns, .packages = c("depmixS4"), .combine = "c") %dopar% {
+  # Define depmix model with simple transition only depending on next_inv
+  tr_simple <- depmix(returns ~ 1, data=data_HMM, nstates=state, transition=~ next_investment, prior=~ investment, initdata=priordat, family=multinomial("mlogit"), ntimes=rep(15,414))
+  
+  mus <- (1:state)*(1/(state+1))
+  sigmas <- rep(1/(state+1), state)
+  if(state > 8) sigmas <- sigmas + .1
+  rModels_tr <- list()
+  for(s in 1:state) {
+    rModels_tr[[s]] <- list(vtdgaus(y=data_HMM$ret_pct_0, yield = 3*data_HMM$investment, pstart=c(mus[s],sigmas[s])))
+  }
+  
+  tr_dmod <- makeDepmix(response=rModels_tr, transition=tr_simple@transition, prior=tr_simple@prior, ntimes = rep(15,414), homogeneous=FALSE)
+  
+  tmp1 <- fit(tr_dmod, emcontrol=em.control(random.start = FALSE))
+  set.seed(my_seeds[state])
+  tmp2 <- multistart(tr_dmod, nstart=20)
+  if(!is.na(logLik(tmp2)) && logLik(tmp2) > logLik(tmp1)) {tmp1 <- tmp2}
+  tmp1
+}
+
+# Stop the parallel backend
+stopImplicitCluster()
+
+
+save(tr_fdmod, file="data/tr_fdmod.RData", compression_level = 9)
+
+```
+
+```{r}
+#|  label: HMM-trustee-model-comparison
+#|  include: false
+
+df_bics_tr <- data.frame(nstate = 2:max_ns,
+                          logLik = unlist(lapply(tr_fdmod, logLik)),
+                          unlist(lapply(tr_fdmod, function(x) attr(logLik(x), which="df"))),
+                          AIC = unlist(lapply(tr_fdmod, AIC)),
+                          BIC = unlist(lapply(tr_fdmod, BIC)))
+df_bics_tr
+
+# Here we choose BIC as best m
+nstate_tr <- which.min(df_bics_tr[,5]) + 1
+
+best_mod_tr_all <- order_mod_vtdgaus(tr_fdmod[[nstate_tr-1]])
+summary(best_mod_tr_all)
+```
+
+```{r}
+#| label: tbl-BICs-tr
+#| warning: false
+#| echo: false
+#| tbl-cap: Model comparison of HMMs of trustee actions with different numbers of latent states.
+
+df_bics_tr %>%
+  mutate_if(is.numeric, format, digits=4, nsmall = 0, big.mark = ",") %>%
+knitr::kable(booktabs = TRUE,
+  col.names = c("#states", "log(lik)", "# par", "AIC", "BIC"))
+```
+
+```{r}
+#| label: fig-trustee-policy-plot
+#| echo: false
+#| fig.cap: Probability mass function of the trustee's policy conditional on its latent state as an output of the best fitting XX state HMM using a truncated discretised Gaussian as a response function
+#| fig.align: center
+#| fig.width: 12
+#| fig.height: 6
+
+
+# Plotting the trustee HMM policy by state 
+tr_policy <- list()
+for(i in 1:nstates(best_mod_tr_all)) {
+  tr_policy[[i]] <- dens(vtdgaus(seq(0,1, length=61), yield=3*20, pstart=c(unlist(best_mod_tr_all@response[[i]][[1]]@parameters))))  
+}
+
+perc_return <- seq(0,1, length=61)
+
+respplot <- data.frame(state = rep(1:nstates(best_mod_tr_all), each=length(perc_return)),
+                            perc_return = perc_return,
+                            probability = unlist(tr_policy)) |>
+  mutate(state = factor(paste0("s",state))) |> 
+  ggplot(                 
+       aes(x = perc_return,
+           y = probability,
+           fill = state)) +
+  geom_bar(stat = "identity",
+           position = "dodge") + 
+  # labs(fill='Latent trustee state') +
+  xlab("Percentage return") +
+  theme_minimal() + 
+  theme(legend.position = "right") + ggtitle("State conditional strategies")
+
+
+# Plotting Prior (initial) state probabilities
+# priorplot <- data.frame(state=factor(paste0("s",1:nstate_tr)), prob=getpars(getmodel(best_mod_tr_all, "prior"))) |>
+#   ggplot(aes(x = state, y = prob, fill=state)) +
+#   geom_bar(stat = "identity", width = 0.5) +
+#   xlab("state") +
+#   ylab("prior probability") +
+#   ggtitle("Initial state probability") +
+#   theme_minimal()
+
+
+# Function to calculate softmax probabilities
+softmax <- function(x) exp(x) / sum(exp(x))
+
+# Assuming best_mod_tr_all is your fitted model
+params <- getpars(getmodel(best_mod_tr_all, "prior"))
+
+# Extract intercepts and investment coefficients, and set initial investment value
+intercepts <- params[1:nstate_tr]
+investments <- params[(nstate_tr + 1):(2 * nstate_tr)]
+investment_value <- 9
+
+# Calculate logits and initial probabilities
+logits <- intercepts + investments * investment_value
+initial_probs <- softmax(logits)
+
+# Create a data frame for plotting
+priordf <- data.frame(
+  state = factor(paste0("s", 1:nstate_tr)),
+  prob = initial_probs
+)
+
+# Plot the initial state probabilities
+priorplot <- ggplot(priordf, aes(x = state, y = prob, fill = state)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  xlab("State") +
+  ylab("Prior Probability") +
+  ggtitle("Initial State Probability for average investment") +
+  theme_minimal()
+
+# Plotting Transition function between states
+plot_transitions <- function(fmod,numCovIn,numCovTr) {
+
+  ns <- nstates(fmod)
+  
+  trans_prob <- data.frame(
+    from = rep(1:ns, each=80*ns),
+    to = rep(1:ns, each=80),
+    inv = seq(0,20,length=80),
+    prob = 0
+  )
+
+  y <- matrix(0.0,ncol=ns, nrow=80)
+  
+  for(from in 1:ns) {
+    #pars <- matrix(getpars(fmod)[seq(ns + 1 + (from - 1)*2*ns, ns + 1 + (from - 1)*2*ns + 2*ns - 1)],ncol=2)
+    pars <- matrix(getpars(fmod)[seq(ns*numCovIn + 1 + (from - 1)*numCovTr*ns, ns*numCovIn + 1 + (from - 1)*numCovTr*ns + numCovTr*ns - 1)], ncol=numCovTr)
+    paste0("from state: ", from)
+    print(pars)
+    for(to in 1:ns) {
+      x <- trans_prob[trans_prob$from == from & trans_prob$to == to, "inv"]
+      y[,to] <- exp(pars[to,1] + pars[to,2]*x)
+    }
+    y <- y/rowSums(y)
+    for(to in 1:ns) {
+      trans_prob$prob[trans_prob$from == from & trans_prob$to == to] <- y[,to]
+    }
+  }
+  
+  trans_prob <- trans_prob %>%
+    mutate(from = paste0("s", from),
+           to = paste0("s", to))
+  
+  
+  ggplot(trans_prob,aes(x=inv,y=prob, colour = as.factor(to))) + geom_line() + facet_wrap(~from) + ylim(c(0,1))
+}
+
+transplot <- plot_transitions(best_mod_tr_all,numCovIn=2,numCovTr=2) + labs(x = "Investment", y = "Probability", color='Transition to') + theme_minimal() + theme(legend.position = "bottom")
+
+
+gridExtra::grid.arrange(respplot, priorplot, transplot, ncol=3, layout_matrix=cbind(c(1,2),c(3,3),c(3,3)))
+
+
+```
+
+
+
