@@ -33,18 +33,17 @@ library(forcats)
 library(ggsignif)
 ```
 
-# Repeated Trust Game 
+# A Snapshot of the Repeated Trust Game as Seen by Participants {-}
 
-Participants played a 15-round repeated trust game [@joyce_trust_1995] in the trustee role against a computer-programmed investor. Each player was represented with an icon with the participant always on the left of the screen and the opponent on the right. The participants were able to choose the icon that represents them at the start of the experiment. The icon representing the opponent changed at the start of each new game, to simulate a new interaction partner. Participants were not told they were facing computerised opponents. We chose to simulate the behavior of a human interaction partner through allowing for a delay whilst pairing with new opponents as the start of each game as well as programming the agents to respond during each round after a random time lapse (randomly chosen between 5 and 10 seconds). 
+Figure \@ref(fig:trustGameScreenshot) shows a screenshot of the repeated Trust Game at the moment the participant is required to make a decision of how much to send back to the Investor.
 
-
-```{r trustGameScreenshot, include=F, fig.cap = "Screenshot of the repeated Trust Game. The game is played in dyads, with one player assigned the role of the investor and the other player that of the trustee. The investor is endowed with 20 units at the start of each round. They need to decide how much of that endowment they want to invest with the trustee. The investment is then multiplied by a factor of 3 and sent to the trustee. The trustee in turn needs to decide how much of the multiplied investment they want to send back to the investor. Shown here is the stage at which the trustee makes a decision of how much to send back the investor", out.width="70%", out.height="70%", fig.align='center'}
+```{r trustGameScreenshot, include=T, fig.cap = "Screenshot of the RTG as seen by participants at the decision phase.", out.width="70%", out.height="70%", fig.align='center'}
 
 knitr::include_graphics("figures/trust_game.png")
 
 ```
 
-# Hidden markov Model used to simulate the Investor's actions
+# Hidden Markov Model Used to Simulate the Investor's Actions {-}
 
 The HMM assumes that the probability of each investment $I_t=0,…,20$, at each trial t, conditional on the current state of the investor $S_t$, is dependent on an underlying normal distribution with mean $\mu_s$ and standard deviation $\sigma_s$. The probability of each discrete investment was determined from the cumulative normal distribution $\Phi$, computing the probability of a Normal variate falling between the midway points of the response options. As responses were bounded at 0 and 20, we normalized these probabilities further by taking the endpoints into account. For instance, the probability of an investment $I_t=2$ is defined as: 
 
@@ -60,10 +59,10 @@ The advantages of this approach is that it does not require any a priori assumpt
 
 We estimated a three-state model for investor's behaviour, using maximum likelihood estimation via the Expectation-Maximisation algorithm as implemented in the depmixS4 package for R [@visser_depmixs4_2021]. The model was estimated using investments from existing datasets of human dyads playing 10 rounds of the RTG with the same trustee. The dataset consisted of a total of 381 games from two data sources: First, a total of 93 repeated trust games with healthy investors and a mix of healthy trustees and trustees diagnosed with Borderline Personality Disorder (BPD) [@king-casas_rupture_2008]. The second source was from data collected as part of a project investigating social exchanges in BPD and antisocial personality disorder reported on elsewhere [@euler_interpersonal_2021; @huang_multidirectional_2020; @rifkin-zybutz_impaired_2021] and consists of 288 games. In both datasets, the investor on which we modelled the HMM's strategy was always selected from a healthy population and the trustees were a mix of healthy participants and those with personality disorders allowing for a diversified interaction behavior. 
 
+ 
+# Mixed-effects Models for Participant Returns {-}
 
-## Mixed-effects models for participant returns
-
-We fit a linear mixed effects model to participant returns as a proportion of the multiplied investment received as described below. The results of the model are presented in Table \ref{tab:myTable} 
+We fit a linear mixed effects model to participant returns as a proportion of the multiplied investment received as described below. The results of the model are presented in Table \@ref(tab:myTableRet)
 
 \[
 \begin{split}
@@ -105,27 +104,61 @@ mod_df <- mod_df %>%
   rownames_to_column(var = "Term") %>% 
   mutate(Term = gsub("condition.f1", "Condition", Term),
          Term = gsub("phase.f1", "Phase", Term),
-         Term = gsub("high_RS1", "high_RS", Term),
-         Term = gsub("inv_scaled", "Investment", Term))
+         Term = gsub("high_RS1", "RS_group", Term),
+         Term = gsub("inv_scaled", "Investment", Term)) %>%
+  mutate(across(where(is.numeric), ~round(., 2)))  # Round all numeric columns to 2 decimal places
 
-# Create a summary table using apa_table
-summary_table <- papaja::apa_table(
-  mod_df,
-  caption = "Summary of Mixed-Effects Model of participant returns over all rounds",
-  align = c("l", "c", "c", "c", "c", "c")
-)
 
 
 ```
 
 
-```{r myTable, results='asis'}
-summary_table
+```{r myTableRet, results='asis'}
+# Create table using kable and kableExtra
+kable(mod_df, 
+      caption = "Summary of Mixed-Effects Model of participant returns across all rounds",
+      booktabs = TRUE,
+      align = c("l", "c", "c", "c", "c", "c")) %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
 ```
 
+
+# Mixed-effects Models for HMM Investments  {-}
+
+We fit a linear mixed effects model to the investments sent by the HMM with Phase, Condition and RS groups as fixed effects, and player-wise intercepts. The results of the model are presented in Table \ref{tab:myTableInv}.
+
+```{r, include=F}
+# Create a summary object
+model_inv <- readRDS("data/mod_invs_RS.RDS")
+
+
+# Extract the fixed effects as a data frame
+mod_df_inv <- as.data.frame(model_inv$coefficients)
+
+
+mod_df_inv <- mod_df_inv %>%
+  rownames_to_column(var = "Term") %>% 
+  mutate(Term = gsub("condition.f1", "Condition", Term),
+         Term = gsub("phase.f1", "Phase", Term),
+         Term = gsub("high_RS1", "RS_group", Term)) %>%
+  mutate(across(where(is.numeric), ~round(., 2)))  # Round all numeric columns to 2 decimal places
+
+
+```
+
+
+```{r myTableInv, results='asis'}
+# Create table using kable and kableExtra
+kable(mod_df_inv, 
+      caption = "Summary of Mixed-Effects Model of HMM investments across all rounds",
+      booktabs = TRUE,
+      align = c("l", "c", "c", "c", "c", "c")) %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
 
 
 
 \pagebreak
 
-# References 
+
+# References {-}
