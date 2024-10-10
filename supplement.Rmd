@@ -7,7 +7,7 @@ output:
    toc: false
 
 bibliography: "bib/exposure.bib"
-biblio-style: spphys
+csl: apa.csl
 
 header-includes:
   - \renewcommand{\thefigure}{S\arabic{figure}}
