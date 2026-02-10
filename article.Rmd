@@ -1,7 +1,7 @@
 ---
 title: "When Forgiveness Backfires: Rejection Sensitivity and Cooperative Behavior Following Exposure to Adaptive Forgiving Agents"
-author:
-  "Ismail Guennouni^1,2,3,4^*, Georgia Koppe^1,2,3^$^\\dagger$, Christoph Korn^4^$^\\dagger$"
+author: ""
+  # Original: "Ismail Guennouni^1,2,3,4^*, Georgia Koppe^1,2,3^$^\\dagger$, Christoph Korn^4^$^\\dagger$"
 abstract: |
 bibliography: "bib/exposure.bib"
 csl: apa.csl
@@ -10,8 +10,11 @@ output:
    # bookdown::word_document2:
     keep_tex: true
     toc: false
+    number_sections: false
 header-includes:
   - \usepackage{lscape}
+  - \usepackage{lineno}
+  - \linenumbers
 editor_options: 
   markdown: 
     wrap: 72
@@ -19,6 +22,7 @@ editor_options:
 
 \small
 
+<!--
 ^1^ *Department of Psychiatry and Psychotherapy, Central Institute of
 Mental Health, Medical Faculty Mannheim, Heidelberg University,
 Mannheim, Germany*
@@ -39,23 +43,24 @@ $^\dagger$ *Joint last author*
 ^\*^ *Corresponding author. Address: Central institute of Mental Health,
 J5, Mannheim, Germany. Email:
 [ismail.guennouni\@zi-mannheim.de](mailto:ismail.guennouni@zi-mannheim.de){.email}. ORCID: [0000-0002-1096-4714](https://orcid.org/0000-0002-1096-4714)*
-
-\pagebreak
+-->
 
 **Abstract:**
 
-Can exposure to forgiving partners improve interpersonal cooperation? Attachment theory suggests positive relational experiences can correct negative internal working models, but individuals high in Rejection Sensitivity (RS)—characterized by anxious expectations of rejection—may be resistant to such corrective experiences due to stable negative expectations. We tested this using a randomized experiment (N = 206) in which participants played repeated trust games with HMM-based artificial agents that simulate human-like trust dynamics. After a baseline game, participants were exposed to either forgiving agents with no pre-programmed trust withdrawal (Manipulation) or human-like agents maintaining typical trust violation patterns (Control), then played a final game with a standard agent. Overall, forgiveness exposure *reduced* subsequent cooperation—participants appeared to perceive the standard post-exposure agent as less cooperative by comparison (a negative contrast effect). Critically, RS moderated specific behavioral patterns but not overall cooperation levels: high RS participants failed to recover cooperation after trust violations and became *less* responsive to partner behavior following exposure, whereas low RS participants showed normal recovery and became *more* responsive. These findings suggest that positive relational experiences do not universally promote cooperation, and that high RS individuals may require interventions targeting their capacity to update expectations rather than simply providing positive experiences.
+Can exposure to forgiving partners improve interpersonal cooperation? Attachment theory suggests positive relational experiences can correct negative internal working models, but individuals high in rejection sensitivity (RS)—characterized by anxious expectations of rejection—may be resistant to such corrective experiences due to stable negative expectations. We tested this using a randomized experiment (N = 206) in which participants played repeated trust games with HMM-based artificial agents that simulate human-like trust dynamics. After a baseline game, participants were exposed to either forgiving and behaviorally consistent agents—designed to never remain in a low-trust state and free from pre-programmed trust violations (Manipulation)—or human-like agents maintaining typical trust violation patterns (Control), then played a final game with a standard agent. Overall, exposure to these idealized partners *reduced* subsequent cooperation—participants appeared to perceive the standard post-exposure agent as less cooperative by comparison (a negative contrast effect). RS moderated specific behavioral patterns but not overall cooperation levels: high RS participants failed to recover cooperation after trust violations and became *less* responsive to partner behavior following exposure, whereas low RS participants showed normal recovery and became *more* responsive. These findings suggest that positive relational experiences do not universally promote cooperation, and that high RS individuals may require interventions targeting their capacity to update expectations rather than simply providing positive experiences.
 
 \vspace{1cm}
 
 **Keywords:** Interpersonal functioning; Rejection Sensitivity;
 Forgiveness Intervention; Trust-based Cooperation; Hidden Markov Models
 
+<!--
 \vspace{1cm}
 
 **General Scientific Summary:**
 
 This study found that exposing people to forgiving partners (with no trust withdrawal) in economic games decreased their subsequent cooperation—likely because human-like partners seemed less cooperative by comparison. Individuals high in rejection sensitivity showed a distinct pattern: while they detected trust violations as readily as others, they failed to restore cooperation afterward and became less responsive to their partner's behavior. In contrast, those low in rejection sensitivity appeared to learn from the positive exposure and became more reciprocal. These findings suggest that simply providing positive social experiences may not benefit everyone equally, and that individuals prone to rejection sensitivity may need targeted support to translate positive experiences into lasting behavioral change.
+-->
 
 \pagebreak
 
@@ -215,7 +220,7 @@ HMM investor, they were randomly assigned to either a Control or
 Manipulation condition. In the Manipulation condition, participants were
 exposed over three RTGs to HMM investors designed with a limited
 propensity for retaliation—agents that were both forgiving of low returns
-AND free from pre-programmed trust violations, providing a consistently
+*and* free from pre-programmed trust violations, providing a consistently
 positive relational experience. In the Control condition, participants
 played three RTGs against the same human-like HMM that maintained the
 occasional low-investment pattern from the pre-exposure phase,
@@ -226,12 +231,21 @@ another 15-round RTG with a human-like HMM investor, similar to the one
 in the pre-exposure phase.
 
 Based on the corrective experience hypothesis, we predicted that
-forgiveness exposure would increase subsequent cooperation, with high RS
-individuals potentially benefiting from positive relational experiences
-that challenge their negative expectations. We examined both overall
-effects of the manipulation and differential responses based on RS, with
-particular attention to how participants respond to trust violations
-before and after the exposure phase.
+exposure to these idealized, forgiving partners would increase subsequent
+cooperation, with high RS individuals potentially benefiting from positive
+relational experiences that challenge their negative expectations. Because
+the Manipulation condition combined forgiveness with behavioral consistency,
+our design tests a strong version of this hypothesis—whether an
+unambiguously positive relational experience transfers to subsequent
+interactions. We examined both overall effects of the manipulation and
+differential responses based on RS, with particular attention to how
+participants respond to trust violations before and after the exposure
+phase. We note that while our primary prediction was grounded in the
+corrective experience hypothesis, the alternative interpretations
+involving negative contrast effects and RS-specific updating deficits
+were refined following initial data analysis (see Transparency and Data
+Availability); the RS moderation findings should therefore be considered
+exploratory.
 
 # Methods
 
@@ -312,8 +326,7 @@ identified ethnically as White ($80$%). The online cohort registered 30
 unique countries of birth with the most frequent being the U.K ($33$%)
 followed by Poland ($10$%) and Portugal ($10$%). Participants were paid
 a fixed fee of £6 plus a bonus payment dependent on their performance
-that averaged £0.5. Data was collected over multiple sessions between
-December 2023 and February 2024.
+that averaged £0.5. Data were collected over multiple sessions.
 
 ## Design and procedure
 
@@ -324,8 +337,9 @@ were randomly assigned to one of the two levels of the Condition factor,
 resulting in 101 participants in the Manipulation condition and 105 in
 the Control condition. The games were designed and implemented online
 using Empirica v1 [@almaatouq_empirica_2021]. The planned experiment
-received approval from the University of Heidelberg's Medical Faculty
+received approval from the university's
 ethics commission (ID:S-708/2023) and the experiment was performed in
+<!-- Original: University of Heidelberg's Medical Faculty -->
 accordance with the ethics board guidelines and regulations. All
 participants provided informed consent prior to their participation.
 
@@ -488,18 +502,22 @@ the left of the screen and the co-player on the right. The participants
 were able to choose the icon that represents them at the start of the
 experiment. The icon representing the co-player changed at the start of
 each new game, to simulate a new interaction partner. Participants were
-not told they were facing computerised co-players. We chose to simulate
+not told they were facing computerized co-players. We chose to simulate
 the behavior of a human interaction partner through allowing for a delay
-whilst pairing with new opponents as the start of each game as well as
+while pairing with new opponents at the start of each game as well as
 programming the agents to respond during each round after a varying time
 lapse (randomly chosen between 5 and 10 seconds).
 
-The computerised investor consisted of a hidden Markov model (HMM)
+The computerized investor consisted of a hidden Markov model (HMM)
 trained on an independent existing behavioral RTG data set of human
 investors. This data-driven approach thus sought to learn an investor
 strategy that mimics human-like interactions. The data set used for
-training consists of 388 ten round games with the same player (full
-details can be found in the Supplementary Information). On this data
+training consists of 381 ten round games with the same player (full
+details can be found in the Supplementary Information). Importantly, the
+HMM was fitted to the behavior of healthy investors, while the trustees
+in the training data included both healthy participants and individuals
+with personality disorders, providing a diverse range of interaction
+dynamics from which the investor strategy was learned. On this data
 set, the HMM was inferred with three latent states that could be
 interpreted as reflecting a “low-trust”, a “medium-trust”, and a
 “high-trust” state. A separate output distribution, that maps each HMM
@@ -508,15 +526,15 @@ state onto possible investments from 0 to 20 separately, is learned
 distributions can be interpreted as reflecting “low-trust”,
 “medium-trust”, or “high-trust” dispositions. Finally, the HMM is
 specified by transition probabilities that describe the transition
-between states. The probability of these transitions was modelled as a
+between states. The probability of these transitions was modeled as a
 function of their net return (i.e return - investment) in the previous
-round (see Figure \@ref(fig:HMMPanels).C)). The initial state for the
-HMM investor in each instance of the game was set to the “mid-trust”
+round (see Figure \@ref(fig:HMMPanels).C). The initial state for the
+HMM investor in each instance of the game was set to the "medium-trust"
 state. Details on how the HMM state conditional probabilities and
-transition functions are specified can be found in the supplement.
+transition functions are specified can be found in the Supplementary Information (Section B).
 
 In order to instigate a potential breakdown of trust, thereby allowing
-us to probe efforts to repair it, the computerised agent was programmed
+us to probe efforts to repair it, the computerized agent was programmed
 to provide a low investment on round 12 (pre-exposure) and round 13
 (post-exposure). On all other rounds, the investor’s actions were
 determined by randomly drawing an investment from the state-conditional
@@ -544,7 +562,7 @@ the other latent states remain unchanged.
 At the start of the experiment, participants provided informed consent
 and were instructed the study would consist of three phases in which
 they would face a different other player. Participants were told their
-goal was to maximise the number of points in all phases. They were not
+goal was to maximize the number of points in all phases. They were not
 told the number of rounds of each phase. Participants were randomly
 assigned to either a Control or Manipulation condition. The timeline of
 the experiment is shown in Figure \@ref(fig:HMMPanels).A. Phase one
@@ -645,9 +663,9 @@ plot(combined_image)
 
 ## Statistical analysis
 
-We analyzed participants' behavior in the RTG using linear mixed-effects models. First, to examine the effect of the manipulation, we modeled the percentage return (percentage of tripled investment returned to investor) as a function of Phase (RTG game pre vs. post-exposure), Condition (Manipulation vs. Control), Investment, and RS (High vs Low RS group), including all interactions as fixed effects. This model included player-wise random intercepts and slopes for Phase. Second, we analyzed behavior during the Exposure phase specifically, modeling returns with Condition, Investment, and RS and their interactions as fixed effects, along with player-wise random intercepts. Third, to verify the consistency of the HMM agent, we modeled the investments sent by the computerized agent using Condition, Phase, and RS and their interactions as fixed effects. To isolate effects occurring prior to any pre-programmed low investment, we also analyzed returns in rounds preceding the low investment trials only (rounds 1-11 in the pre-exposure phase and rounds 1-12 in the post-exposure phase) using the same model specification. To test whether reduced returns reflected strategic exploitation, we examined investor-harming returns (those below one-third of the tripled investment, which cause the investor to incur a net loss) using a mixed logistic regression with Phase, Condition, Investment, and RS as predictors, and player-wise random intercepts. Trustee payoffs were compared between phases using paired t-tests. Finally, to rigorously assess participants' reactions to and recovery from the specific instance of pre-programmed low investment, we conducted an event study analysis centered on the low investment round ($t=0$). We analyzed percentage returns in a three-round window ($t-1$ to $t+1$) using a linear mixed-effects model with Phase, Condition, Time Point, and RS Group as fixed effects. We specifically examined two key behavioral responses: the Drop (change in return from $t-1$ to the low investment round) and the Recovery (change in return from the low investment round to $t+1$). The full specification of all statistical models can be found in the supplement.
+We analyzed participants' behavior in the RTG using linear mixed-effects models. First, to examine the effect of the manipulation, we modeled the percentage return (percentage of tripled investment returned to investor) as a function of Phase (RTG game pre vs. post-exposure), Condition (Manipulation vs. Control), Investment, and RS (High vs Low RS group), including all interactions as fixed effects. This model included player-wise random intercepts and slopes for Phase. Second, we analyzed behavior during the Exposure phase specifically, modeling returns with Condition, Investment, and RS and their interactions as fixed effects, along with player-wise random intercepts. Third, to verify the consistency of the HMM agent, we modeled the investments sent by the computerized agent using Condition, Phase, and RS and their interactions as fixed effects. To isolate effects occurring prior to any pre-programmed low investment, we also analyzed returns in rounds preceding the low investment trials only (rounds 1-11 in the pre-exposure phase and rounds 1-12 in the post-exposure phase) using the same model specification. To test whether reduced returns reflected strategic exploitation, we examined investor-harming returns (those below one-third of the tripled investment, which cause the investor to incur a net loss) using a mixed logistic regression with Phase, Condition, Investment, and RS as predictors, and player-wise random intercepts. Trustee payoffs were compared between phases using paired t-tests. Finally, to rigorously assess participants' reactions to and recovery from the specific instance of pre-programmed low investment, we conducted an event study analysis centered on the low investment round ($t=0$). We analyzed percentage returns in a three-round window ($t-1$ to $t+1$) using a linear mixed-effects model with Phase, Condition, Time Point, and RS Group as fixed effects. We specifically examined two key behavioral responses: the Drop (change in return from $t-1$ to the low investment round) and the Recovery (change in return from the low investment round to $t+1$). The specification of the main statistical models and their coefficient tables can be found in the supplement.
 
-All models were estimated using the `afex` package [@singmann_afex_2022] in R. We determined the random effects structure by starting with the maximal model and simplifying until convergence was achieved, ensuring the optimal structure [@matuschek_balancing_2017]. A similar process was applied to the models analyzing HMM agent investments and participant ratings. We report differences in marginal means rather than effect sizes, as there is no consensus on effect size calculation for mixed models. $F$-tests used the Kenward-Roger approximation for degrees of freedom. The Investment variable was Z-transformed to facilitate the interpretation of main effects in the presence of interactions. Significant interactions were probed using planned contrasts with the `emmeans` package. We applied the "Sidak" correction for multiple comparisons to control the familywise error rate while maintaining statistical power.
+All models were estimated using the `afex` package [@singmann_afex_2022] in R. We determined the random effects structure by starting with the maximal model and simplifying until convergence was achieved, ensuring the optimal structure [@matuschek_balancing_2017]. A similar process was applied to the models analyzing HMM agent investments and participant ratings. We report differences in marginal means rather than effect sizes, as there is no consensus on effect size calculation for mixed models. $F$-tests used the Kenward-Roger approximation for degrees of freedom, which produces fractional degrees of freedom that vary across effects depending on whether they are between-subjects (lower df) or within-subjects (larger df). The Investment variable was Z-transformed to facilitate the interpretation of main effects in the presence of interactions. Significant interactions were probed using planned contrasts with the `emmeans` package. We applied the "Sidak" correction for multiple comparisons to control the familywise error rate while maintaining statistical power.
 
 ```{r datRatings}
 
@@ -800,7 +818,7 @@ endowment for investments and 35-50% of the total yield for returns, as
 reported in previous studies [@charness_investment_2008;
 @fiedler_social_2011].
 
-```{r gamesPlot, include=T, echo=FALSE, fig.cap="Averages and standard errors of the trustee's return as a percentage of the multiplied investment received (y-axis) by Condition, Phase, and game round (x-axis) averaged across RS groups. The blue line shows the returns in the Pre phase and the green line those in the Post phase. The left Panel shows returns in the Control condition and the right one those in the Manipulation condition. The dotted lines identify the rounds where the pre-programmed one-off low investment occurs. We note lower average returns post vs pre in the Manipulation condition, whilst returns in the Control condition are similar between the two phases.",fig.align="center", fig.width=5, fig.height = 3.3}
+```{r gamesPlot, include=T, echo=FALSE, fig.cap="Averages and standard errors of the trustee's return as a percentage of the multiplied investment received (y-axis) by Condition, Phase, and game round (x-axis) averaged across RS groups. The blue line shows the returns in the Pre phase and the green line those in the Post phase. The left Panel shows returns in the Control condition and the right one those in the Manipulation condition. The dotted lines identify the rounds where the pre-programmed one-off low investment occurs. We note lower average returns post vs pre in the Manipulation condition, while returns in the Control condition are similar between the two phases.",fig.align="center", fig.width=5, fig.height = 3.3}
 
 # Create a data frame for the vertical lines
 vline_data <- data.frame(
@@ -839,8 +857,8 @@ ggplot(avg_ret_df %>% filter(gameNum.f %in% c("pre","post")), aes(x=as.factor(ro
 
 ```
 
-Participants returned higher percentages in the Pre phase compared to
-the Post phase
+Participants returned higher percentages in the pre phase compared to
+the post phase
 (`r papaja::apa_print(mod_returns_pct_RS)$full_result$phase_f`). This
 effect was moderated by Condition
 (`r papaja::apa_print(mod_returns_pct_RS)$full_result$phase_f_condition_f`):
@@ -975,6 +993,7 @@ mod_exploit <- glmer(
   family = binomial,
   control = glmerControl(optimizer = "bobyqa")
 )
+saveRDS(summary(mod_exploit), "data/mod_exploit.RDS")
 
 # Get estimated marginal means for Phase × Condition
 emm_exploit <- emmeans(mod_exploit, ~ phase.f * condition.f, type = "response")
@@ -1048,6 +1067,9 @@ results_4w <- contrast(slopes, method = corrected_contrasts, adjust = "sidak")
 
 # View the results
 summary(results_4w)
+
+# Save slopes and contrasts for supplement
+saveRDS(list(slopes = summary(slopes), contrasts = summary(results_4w)), "data/mod_slopes_4w.RDS")
 
 ```
 
@@ -1197,6 +1219,7 @@ predef_df <- avg_ret_df %>%
 # Same model as main analysis but restricted to rounds prior to low investment
 mod_predef <- mixed(ret_pct_na ~ phase.f * condition.f * inv_scaled * high_RS + (1 + phase.f | playerId),
                     data = predef_df, REML = TRUE, method = "KR")
+saveRDS(summary(mod_predef), "data/mod_predef.RDS")
 ```
 
 ```{r preDefectionContrasts, include=FALSE, cache=TRUE}
@@ -1273,6 +1296,7 @@ get_p_val <- function(contrasts_obj, row_idx) {
   if(p < .001) return("< .001")
   return(paste("=", round(p, 3)))
 }
+saveRDS(summary(mod_event), "data/mod_event.RDS")
 ```
 
 ```{r eventStudyPlot, echo=FALSE, include=TRUE, fig.pos="H", fig.width=5.5, fig.height=3.15, fig.cap="Drop and Recovery responses to pre-programmed low investment in the post-exposure phase (pre-exposure phase not shown as no between-condition differences were observed). Drop = change in returns from low investment round minus t-1 (negative values indicate reduced returns); Recovery = change from t+1 minus low investment round (positive values indicate restored returns). Bars show estimated marginal means from the mixed model; error bars represent 95\\% confidence intervals. The bracket shows the significant between-condition difference in Recovery for High RS participants. ** p < .01."}
@@ -1493,6 +1517,7 @@ ggplot(avg_ret_df %>% filter(gameNum.f %in% c("expo1","expo2","expo3")), aes(x=a
 expo_df <- avg_ret_df %>% filter(gameNum.f %in% c("expo1","expo2","expo3"))
 
 mod_returns_expo <- mixed( ret_pct_na ~ condition.f*inv_scaled*high_RS + (1 | playerId), expo_df, REML= TRUE, method="KR")
+saveRDS(summary(mod_returns_expo), "data/mod_returns_expo.RDS")
 mod_inv_summary <- summary(mod_returns_expo)
 mod_inv_summary
 
@@ -1516,13 +1541,14 @@ summary(pairwise_comparisons3)
 
 ######### HMM investment in EXPO PHASE 
 mod_invs_expo <- mixed(investment ~ condition.f*high_RS + (1 | playerId), expo_df %>% filter(roundNum >= 5), REML= TRUE, method="KR")
+saveRDS(summary(mod_invs_expo), "data/mod_invs_expo.RDS")
 summary(mod_invs_expo)
 
 emcheck_inv <- pairs(emmeans::emmeans(mod_invs_expo, c("condition.f"), pbkrtest.limit = 6300))
 emcheck_inv
 ```
 
-So far we focused on analysing behavior for the pre and post phases.
+So far we focused on analyzing behavior for the pre and post phases.
 Here, we look at returns and investments in the exposure phase. The
 linear mixed effects model of participants' returns in the exposure
 phase does not show a main effect of Condition on returns. There was a
@@ -1570,17 +1596,18 @@ spearman_rho <- apa_result$estimate
 
 ```
 
-Whilst we found a significant correlation between participant's Levels
+While we found a significant correlation between participants' Levels
 of Personality Functioning Score (LPFS) and the Rejection Sensitivity
-Questionnaire score (RSQ), Spearman's `r spearman_rho`, $p < 0.001$,
+Questionnaire score (RSQ), Spearman's `r spearman_rho`, $p < .001$,
 there was no correlation between these questionnaire scores and
-participant's return or overall task performance.
+participants' return or overall task performance.
 
 <!---------------------- Modelling of co-player ratings -------------------------------------->
 
 ```{r afexModCoop, cache=TRUE}
 
 mod_rating_coop <- mixed( rating_coop ~ gameNum.f*condition.f*high_RS + (1 | playerId), datRatings, REML= TRUE, method="KR")
+saveRDS(summary(mod_rating_coop), "data/mod_rating_coop.RDS")
 
 summary(mod_rating_coop)
 
@@ -1642,6 +1669,7 @@ comp1_coop_interaction
 ```{r afexModForg}
 
 mod_rating_forg <- mixed( rating_forgiving ~ gameNum.f*condition.f*high_RS + (1 | playerId), datRatings, REML= TRUE, method="KR")
+saveRDS(summary(mod_rating_forg), "data/mod_rating_forg.RDS")
 
 #summary(mod_rating_forg)
 
@@ -1690,6 +1718,7 @@ comp1_forg_interaction
 ```{r afexModAgain}
 
 mod_rating_again <- mixed( rating_playAgain ~ gameNum.f*condition.f*high_RS + (1 | playerId), datRatings, REML= TRUE, method="KR")
+saveRDS(summary(mod_rating_again), "data/mod_rating_again.RDS")
 
 #summary(mod_rating_again)
 
@@ -1743,7 +1772,7 @@ High RS participants showed more differentiated perceptions of the agents. In th
 
 Comparing pre to post-exposure ratings revealed a contrast effect: after experiencing the forgiving agent, both RS groups in the Manipulation condition rated the post-exposure agent (identical to pre-exposure) more negatively on forgiveness (High RS: `r format_emmeans_apa(forg_results$ManipHighRS)`; Low RS: `r format_emmeans_apa(forg_results$ManipLowRS)`) and willingness to play again (High RS: `r format_emmeans_apa(again_results$ManipHighRS)`; Low RS: `r format_emmeans_apa(again_results$ManipLowRS)`). Low RS participants in the Control condition showed stable ratings, accurately perceiving the consistent agent strategy, while high RS participants in the Control condition continued their negative drift (Cooperation: `r format_emmeans_apa(coop_results$ControlHighRS)`). These rating patterns converge with the behavioral findings, suggesting high RS individuals are particularly sensitive to relative comparisons between interaction partners.
 
-```{r plotRatings,include=T, echo=FALSE, fig.pos='H', fig.cap="Participants' ratings of co-players by phase, condition, and RS group. Blue: perceived cooperation; red: perceived forgiveness; green: willingness to play again. Low RS participants showed stable ratings in the Control condition. High RS participants showed declining ratings in the Control condition despite unchanged agent strategy, and more differentiated perceptions in the Manipulation condition.", fig.align="center", fig.width=5, fig.height = 5}
+```{r plotRatings,include=T, echo=FALSE, fig.pos='H', fig.cap="Participants' ratings of co-players by phase, condition, and RS group. Blue: perceived cooperation; orange: perceived forgiveness; green: willingness to play again. Low RS participants showed stable ratings in the Control condition. High RS participants showed declining ratings in the Control condition despite unchanged agent strategy, and more differentiated perceptions in the Manipulation condition.", fig.align="center", fig.width=5, fig.height = 5}
 
 ggplot(summary_df, aes(x = gameNum.f, y = mean, group = interaction(rating_type, condition.f), color = rating_type)) +
   geom_errorbar(aes(ymin = mean - sem, ymax = mean + sem), width = .1, position = position_dodge(width = 0.25)) +
@@ -1751,7 +1780,7 @@ ggplot(summary_df, aes(x = gameNum.f, y = mean, group = interaction(rating_type,
   geom_point(position = position_dodge(width = 0.25), size = 3) +
   facet_wrap(~high_RS*condition.f, scales = "free_x") +
   labs(x = "Phase", y = "Mean Rating", color = "Rating Type") +
-  scale_color_manual(values = c("rating_coop" = "lightblue", "rating_forgiving" = "#FF6961", "rating_playAgain" = "#77DD77"),
+  scale_color_manual(values = c("rating_coop" = "#56B4E9", "rating_forgiving" = "#E69F00", "rating_playAgain" = "#009E73"),
                      labels = c("Cooperative", "Forgiving", "Play again")) +
   theme_bw() +
   theme(legend.position = "bottom")
@@ -1861,7 +1890,7 @@ ggplot(state_summary , aes(x = gameNum.f, y = state_percentage, fill = investorS
 We used a randomized controlled online experiment where participants
 played a RTG with artificial agents designed to simulate human-like
 trust-building scenarios. Participants were then exposed to either
-forgiving HMM agents (which, by design, were also more cooperative due to their inability to remain in a low-trust state) or standard human-like HMM agents before playing another RTG. We found
+forgiving and behaviorally consistent HMM agents (which, by design, were also more cooperative due to their inability to remain in a low-trust state and their lack of pre-programmed trust violations) or standard human-like HMM agents before playing another RTG. We found
 that RS did not moderate participants' returns as trustees in the
 repeated trust game. While previous research has shown that RS affects
 *trust* formation, appraisal and repair, its impact on *reciprocity* in
@@ -1872,10 +1901,10 @@ repeated interactions, challenging assumptions about the pervasive
 influence of RS on social behavior and highlighting the complexity of
 factors influencing reciprocity in economic exchanges.
 
-Contrary to our hypothesis, exposure to forgiving agents did not
-increase participant's reciprocity or cooperation, nor did it prompt the
-artificial agent to increase their trust in participants through higher
-investments. Instead, participants reduced their returns overall whilst
+Contrary to our hypothesis, exposure to forgiving and behaviorally
+consistent agents did not increase participants' reciprocity or
+cooperation, nor did it prompt the artificial agent to increase its
+trust in participants through higher investments. Instead, participants reduced their returns overall while
 the returns of those in the Control group did not change between the pre
 and post phase of the experiment. Why did participants reduce their
 returns even though they were repeatedly exposed to agents designed to be more forgiving? A look at how the participants rated
@@ -1889,7 +1918,7 @@ This occurs when the evaluation of a person, object, or situation is
 influenced by comparisons with recently encountered contrasting objects
 or people. If we've repeatedly interacted with someone exceptionally
 nice, our perception of a normal level of niceness might be skewed,
-making typical behavior seem less favourable or even negative by
+making typical behavior seem less favorable or even negative by
 comparison [@kobre_negative_1972]. As the most recently faced opponents
 were more forgiving (and consequently more cooperative), this negative contrast effect may
 have trumped any learning transfer from being repeatedly exposed to
@@ -1898,7 +1927,7 @@ is indeed replicable, then an avenue for future research would be to use
 it to our benefit by making the participants play agents with low
 cooperation perception.
 
-The design deliberately created two qualitatively different exposure experiences: Manipulation participants interacted with partners who were both forgiving (unable to remain in low-trust states) AND behaviorally consistent (no pre-programmed trust violations), while Control participants interacted with partners who maintained the same pattern of occasional low investments seen in the pre-exposure phase. This design reflects the multidimensional nature of secure relational experiences in attachment theory—a secure base provides both responsiveness to distress (forgiveness) and consistent availability [@bowlby_secure_1988]. The Control condition thus represents continuity with typical relationship patterns, while the Manipulation condition tests whether exposure to an idealized partner—one who is positive on both dimensions—produces lasting change.
+The design deliberately created two qualitatively different exposure experiences: Manipulation participants interacted with partners who were both forgiving (unable to remain in low-trust states) *and* behaviorally consistent (no pre-programmed trust violations), while Control participants interacted with partners who maintained the same pattern of occasional low investments seen in the pre-exposure phase. This design reflects the multidimensional nature of secure relational experiences in attachment theory—a secure base provides both responsiveness to distress (forgiveness) and consistent availability [@bowlby_secure_1988]. The Control condition thus represents continuity with typical relationship patterns, while the Manipulation condition tests whether exposure to an idealized partner—one who is positive on both dimensions—produces lasting change.
 
 One might argue that the Manipulation condition's absence of trust violations during exposure could produce heightened betrayal aversion when participants later encountered the post-phase low investment. However, the analysis of returns prior to the pre-programmed low investment provides evidence against this account. If betrayal aversion were driving the effect, group differences should only emerge after participants encountered the low investment in the post-exposure phase. Instead, Manipulation participants had already significantly reduced their returns in rounds 1-12 of the post-exposure phase—before any low investment occurred. This pattern is consistent with contrast effects operating from the beginning of the post-exposure phase, as participants immediately perceived the human-like agent as less cooperative compared to the forgiving agent they had just experienced. While betrayal aversion may contribute to specific aspects of the observed patterns, such as the impaired recovery following the low investment in high RS participants, it cannot account for the overall reduction in cooperation that was already evident before any low investment.
 
@@ -1917,7 +1946,7 @@ These findings have implications for interventions aimed at promoting trust and 
 While this study offers valuable insights into trust and cooperation
 dynamics, several limitations warrant consideration. First, the Manipulation condition combined two features of positive relational experiences: forgiveness (agents could not remain in low-trust states following low returns) and behavioral consistency (no pre-programmed low investments during exposure). This combination was deliberate—secure relationships typically involve both dimensions—but it means we tested a "strong" version of the corrective experience hypothesis rather than isolating forgiveness specifically. Control participants, by contrast, experienced realistic continuity: partners who showed the same pattern of occasional low investments across all phases. Although the analysis of pre-low-investment returns favors contrast effects over betrayal aversion as the primary mechanism, future replications could include additional conditions (e.g., forgiving agents that still deliver occasional low investments) to isolate the unique contribution of each relational dimension. Second, our extreme groups design for RS (selecting
 participants with RSQ scores > 15 or < 10) maximized power to detect
-moderation effects but may inflate effect sizes and limits
+moderation effects but may inflate effect sizes and limit
 generalizability to individuals with moderate RS. Future research should
 examine RS as a continuous variable. Third, the brief exposure phase
 (three seven-round games) may have been insufficient to induce lasting
@@ -1927,36 +1956,20 @@ they faced humans and a similar proportion were unsure, the observed
 effects emerged even among those who suspected AI, suggesting robustness
 of the findings. Despite these limitations, subsequent studies could
 address these constraints by incorporating face-to-face interactions,
-longer exposure periods, and continuous RS measurement.
-
-## Constraints on generality
-
-The results may be specific to adults with high or low RS recruited from
-online platforms, and may not generalize to clinical populations,
-children, or older adults. Our use of a computerized Repeated Trust Game
-with HMM agents, while allowing for high experimental control, may limit
-generalizability to face-to-face interactions or games with different
-economic structures. The brief exposure phase and pre-programmed
-low investments are specific to our design and may not reflect real-world
-trust-building scenarios. The online context may not capture all aspects
-of high-stakes or information-rich interactions. We believe the core
-finding of decreased cooperation after exposure to forgiving agents
-should generalize across different populations and contexts, though the
-effect's strength and its interaction with RS may vary. While the
-specific economic game, agent representation, and perception assessment
-questions could be varied, the use of artificial agents with consistent
-behavior, an exposure phase with more forgiving behavior, and assessment
-of both behavior and perceptions should remain constant to preserve the
-results. Future studies could systematically vary these factors to
-establish the boundaries of generalizability for our findings.
-Additionally, cultural differences in norms of cooperation and trust may
-influence the generalizability of these findings, necessitating
-cross-cultural replications to establish the universality of the
-observed effects.
+longer exposure periods, and continuous RS measurement. Regarding
+generalizability, our results may be specific to adults with high or low
+RS recruited from online platforms and may not generalize to clinical
+populations, children, or older adults. We believe the core finding of
+decreased cooperation after exposure to forgiving agents should
+generalize across different populations and contexts, though the
+effect's strength and its interaction with RS may vary. Cultural
+differences in norms of cooperation and trust may also influence the
+generalizability of these findings, necessitating cross-cultural
+replications.
 
 # Conclusion
 
-This randomised controlled experiment enabled us to uncover unexpected
+This randomized controlled experiment enabled us to uncover unexpected
 effects of exposure to forgiving behavior on subsequent cooperation,
 particularly in relation to RS. These findings challenge existing
 assumptions about fostering cooperative behavior and suggest the need
@@ -1974,20 +1987,32 @@ experiments and real-world social dynamics.
 
 # Author contributions statement {.unnumbered}
 
+Author A, Author B and Author C designed and developed the study
+concept. Experiment design, testing and data collection were performed
+by Author A. Author A analyzed and interpreted the data under
+the supervision of Author B and Author C. All authors jointly wrote and
+approved the final version of the manuscript for submission.
+
+<!--
 I. Guennouni, G. Koppe and C. Korn. designed and developed the study
 concept. Experiment design, testing and data collection were performed
 by I. Guennouni. I. Guennouni analysed and interpreted the data under
 the supervision of G. Koppe and C. Korn. All authors jointly wrote and
 approved the final version of the manuscript for submission.
+-->
 
 # Funding {.unnumbered}
 
+[Anonymized for double-blind review.]
+
+<!--
 This study was supported by the Federal Ministry of Science, Education,
 and Culture (MWK) of the state of Baden-Württemberg within the AI Health
 Innovation Cluster Initiative, the German Research Foundation (DFG)
 within the Excellence Strategy EXC 2181/1 – 390900948 (STRUCTURES), and
 the Hector II foundation. I. Guennouni was supported by a research
 fellowship from the AI Health Innovation Cluster.
+-->
 
 # Competing interests statement {.unnumbered}
 
@@ -1996,26 +2021,37 @@ respect to the authorship or the publication of this article.
 
 # Acknowledgements {.unnumbered}
 
+[Anonymized for double-blind review.]
+
+<!--
 We are grateful to Tobias Nolte, Andreas Hula and Read Montague's team
 at Virginia Tech for sharing with us the data on the RTG allowing us to
 fit the HMM to investor data. We're also grateful for Samuel Dupret for
 help designing the online platform used for the experiment and Maarten
 Speekenbrink for his guidance on the use of HMM models.
+-->
 
 # Additional information {.unnumbered}
 
 ## Correspondence {.unnumbered}
 
-All correspondence and requests for materials should be addressed to I.
-Guennouni.
+All correspondence and requests for materials should be addressed to
+the corresponding author.
+
+<!-- All correspondence and requests for materials should be addressed to I.
+Guennouni. -->
 
 ## Transparency and data availability {.unnumbered}
 
 Preregistration: The hypotheses and methods were not preregistered. The primary hypothesis, based on attachment theory, predicted that forgiveness exposure would increase cooperation. The alternative predictions regarding contrast effects and RS-specific updating biases were incorporated into the theoretical framework following initial data analysis, though both perspectives were grounded in existing literature. The analysis plan was not preregistered. Materials: All study materials are
-publicly available (<https://github.com/ismailg/exposure-public>). Data:
+publicly available at [anonymous repository — link provided upon acceptance]. Data:
 All primary data are publicly available
-(<https://github.com/ismailg/exposure-public>). Analysis scripts: All
+at [anonymous repository — link provided upon acceptance]. Analysis scripts: All
 analysis scripts are publicly available
-(<https://github.com/ismailg/exposure-public>).
+at [anonymous repository — link provided upon acceptance].
+
+<!-- Original URLs:
+(<https://github.com/ismailg/exposure-public>)
+-->
 
 # References

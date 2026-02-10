@@ -15,3 +15,13 @@ manuscript_exposure.pdf
 abstract_page.pdf
 abstract_page.tex
 .DS_Store
+niceAi.Rmd
+screenCode.Rmd
+article_doc.Rmd
+article_collabra.Rmd
+article_collabra.pdf
+article_collabra.tex
+article_collabra_cache/
+article_collabra_files/
+*.log
+cover_letter_collabra.md
