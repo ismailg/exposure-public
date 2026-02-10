@@ -25,3 +25,20 @@ article_collabra_cache/
 article_collabra_files/
 *.log
 cover_letter_collabra.md
+
+# Build artifacts and caches
+article_cache/
+article_files/
+article_doc_cache/
+article_doc_files/
+article_doc.docx
+article.tex
+
+# Screening data with Prolific IDs (not anonymized)
+data/df_screening.RData
+data/highRSQ_collected.csv
+data/high_RS.csv
+
+# Misc
+niceAI.Rproj
+data/mod_returns_pct_RS
