@@ -2044,14 +2044,10 @@ Guennouni. -->
 ## Transparency and data availability {.unnumbered}
 
 Preregistration: The hypotheses and methods were not preregistered. The primary hypothesis, based on attachment theory, predicted that forgiveness exposure would increase cooperation. The alternative predictions regarding contrast effects and RS-specific updating biases were incorporated into the theoretical framework following initial data analysis, though both perspectives were grounded in existing literature. The analysis plan was not preregistered. Materials: All study materials are
-publicly available at [anonymous repository — link provided upon acceptance]. Data:
+publicly available at <https://github.com/ismailg/exposure-public>. Data:
 All primary data are publicly available
-at [anonymous repository — link provided upon acceptance]. Analysis scripts: All
+at <https://github.com/ismailg/exposure-public>. Analysis scripts: All
 analysis scripts are publicly available
-at [anonymous repository — link provided upon acceptance].
-
-<!-- Original URLs:
-(<https://github.com/ismailg/exposure-public>)
--->
+at <https://github.com/ismailg/exposure-public>.
 
 # References
